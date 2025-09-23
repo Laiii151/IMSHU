@@ -4,4 +4,4 @@ python-dotenv==1.0.1
 selenium==4.22.0
 webdriver-manager==4.0.2
 XlsxWriter==3.2.0
-gunicorn
+gunicorn==22.0.0
