@@ -111,7 +111,35 @@ def filter_df(df: pd.DataFrame, keyword: str) -> pd.DataFrame:
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template("home.html")
+    """
+    GET請求：單純顯示頁面。
+    - 會嘗試載入最新的CSV，如果找不到就顯示一個空表格。
+    """
+    kind = request.args.get("kind", "timetable")
+    keyword = request.args.get("keyword", "")
+    outputs = OUTPUTS.get(kind, [])
+
+    df = pd.DataFrame() # 預設建立一個空的 DataFrame
+    csv_path = latest_existing(outputs)
+
+    if csv_path: # 只有在找到 CSV 檔案時才讀取
+        df = load_csv_safely(csv_path)
+
+    if not df.empty: # 如果 DataFrame 不是空的，才進行篩選
+        df = filter_df(df, keyword)
+        pref = DEFAULT_COLUMNS.get(kind, [])
+        cols = [c for c in pref if c in df.columns]
+        view_df = df[cols] if cols else df
+    else:
+        view_df = df # 維持空的 DataFrame
+
+    return render_template(
+        "home.html",
+        result_table=view_df.to_html(classes="table table-striped", index=False),
+        kind=kind,
+        keyword=keyword,
+        download_link=os.path.basename(csv_path) if csv_path else None
+    )
 
 
 @app.route("/query", methods=["POST"])
@@ -181,4 +209,5 @@ def download():
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
 
