@@ -19,10 +19,10 @@ app.secret_key = os.getenv("APP_SECRET", "dev-secret")  # for flash()
 # === 設定：請把路徑改成你電腦上實際的檔名 ===
 # 建議把你的四個爬蟲檔擺一起（或改成絕對路徑）
 SCRIPTS = {
-    "timetable": r"C:\Users\User\OneDrive\Desktop\imshu\Main reptile\schedule_scraper.py",
-    "grades": r"C:\Users\User\OneDrive\Desktop\imshu\Main reptile\grade.py",
-    "ranking": r"C:\Users\User\OneDrive\Desktop\imshu\Main reptile\ranking_scraper.py",
-    "attendance": r"C:\Users\User\OneDrive\Desktop\imshu\Main reptile\attendance_scraper.py",
+    "timetable": "Main reptile\schedule_scraper.py",
+    "grades": "Main reptile\grade.py",
+    "ranking": "Main reptile\ranking_scraper.py",
+    "attendance": "Main reptile\attendance_scraper.py",
 }
 
 # 各腳本跑完後**預期**會產生的檔案（用來找最新一份）
@@ -181,3 +181,4 @@ def download():
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
