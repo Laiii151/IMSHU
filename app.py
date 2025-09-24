@@ -12,6 +12,8 @@ from flask import Flask, render_template, request, send_file, redirect, url_for,
 from dotenv import load_dotenv
 
 load_dotenv()
+USERNAME = os.getenv('SHU_USERNAME')
+PASSWORD = os.getenv('SHU_PASSWORD')
 
 app = Flask(__name__)
 app.secret_key = os.getenv("APP_SECRET", "dev-secret")  # for flash()
@@ -19,18 +21,18 @@ app.secret_key = os.getenv("APP_SECRET", "dev-secret")  # for flash()
 # === 設定：請把路徑改成你電腦上實際的檔名 ===
 # 建議把你的四個爬蟲檔擺一起（或改成絕對路徑）
 SCRIPTS = {
-    "timetable": "Main reptile/schedule_scraper.py",
-    "grades": "Main reptile/grade.py",
-    "ranking": "Main reptile/ranking_scraper.py",
-    "attendance": "Main reptile/attendance_scraper.py",
+    "timetable": r"C:\IMSHU\Mainreptile\schedule_scraper.py",  # 只抓清單一那支
+    "grades":r"C:\IMSHU\Mainreptile\grade.py",          # 歷年成績那支（輸出 grades_courses_fixed.csv / grades_summary_fixed.csv）
+    "ranking":r"C:\IMSHU\Mainreptile\ranking_scraper.py",         # 歷年名次那支（輸出 ranking_records.csv）
+    "attendance":r"C:\IMSHU\Mainreptile\attendance_scraper.py",      # 出缺勤記錄那支（輸出 attendance_records.csv）
 }
 
 # 各腳本跑完後**預期**會產生的檔案（用來找最新一份）
 OUTPUTS = {
-    "timetable": ["timetable_list1.csv"],
-    "grades":    ["grades_courses_fixed.csv", "grades_summary_fixed.csv"],
-    "ranking":   ["ranking_records.csv"],
-    "attendance":["attendance_records.csv"],
+    "timetable": [f"{USERNAME}_timetable_list1.csv"],
+    "grades":    [f"{USERNAME}_grades_courses_fixed.csv", f"{USERNAME}_grades_summary_fixed.csv"],
+    "ranking":   [f"{USERNAME}_ranking_records.csv"],
+    "attendance":[f"{USERNAME}_attendance_records.csv"],
 }
 
 # CSV 顯示時的預設欄位（有就秀；沒有就自動顯示全部）
