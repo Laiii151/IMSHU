@@ -791,6 +791,8 @@ def main():
             print("   2. 頁面結構是否有變化")
             print("   3. 選擇器是否需要更新")
         
+        local_csv_path = USERNAME + "_attendance_records.csv"
+        upload_to_gdrive(local_csv_path,USERNAME + "_uploaded_attendance_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
         print("\n✅ 爬蟲執行完成！")
         
     except Exception as e:
@@ -808,7 +810,6 @@ def main():
         if not HEADLESS:
             time.sleep(2)
         driver.quit()
-    local_csv_path = USERNAME + "_attendance_records.csv"
-    upload_to_gdrive(local_csv_path,USERNAME + "_uploaded_attendance_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
+    
 if __name__ == "__main__":
     main()
