@@ -21,7 +21,7 @@ app.secret_key = os.getenv("APP_SECRET", "dev-secret")  # for flash()
 # === 設定：請把路徑改成你電腦上實際的檔名 ===
 # 建議把你的四個爬蟲檔擺一起（或改成絕對路徑）
 SCRIPTS = {
-    "timetable": r"C:\IMSHU\Mainreptile\schedule_scraper.py",  # 只抓清單一那支
+    "timetable": "~\Mainreptile\schedule_scraper.py",  # 只抓清單一那支
     "grades":r"C:\IMSHU\Mainreptile\grade.py",          # 歷年成績那支（輸出 grades_courses_fixed.csv / grades_summary_fixed.csv）
     "ranking":r"C:\IMSHU\Mainreptile\ranking_scraper.py",         # 歷年名次那支（輸出 ranking_records.csv）
     "attendance":r"C:\IMSHU\Mainreptile\attendance_scraper.py",      # 出缺勤記錄那支（輸出 attendance_records.csv）
@@ -211,6 +211,7 @@ def download():
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
 
 
 
