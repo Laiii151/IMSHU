@@ -144,7 +144,7 @@ def index():
     )
 
 
-@app.route("/query", methods=["POST"])
+@app.route("/query", methods=["GET", "POST"])
 def query():
     kind = request.form.get("kind")  # timetable / grades / ranking / attendance
     keyword = request.form.get("keyword", "").strip()
@@ -211,6 +211,7 @@ def download():
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+
 
 
 
