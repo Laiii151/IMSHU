@@ -32,12 +32,6 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 
-# 將標準輸出編碼設定為 UTF-8
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-
-# 然後你的程式碼繼續...
-# ...
-print("\u2705 已載入 .env 檔案")
 # ───── 載入環境變數 (.env 需有 SHU_USERNAME / SHU_PASSWORD) ─────
 try:
     from dotenv import load_dotenv
@@ -139,7 +133,57 @@ def login_if_needed(driver):
             js_click(driver, btn)
         except NoSuchElementException:
             p.submit()
-        time.sleep(1.2)
+        time.sleep(0.8)
+        # 提交後短暫輪詢錯誤訊息，若偵測到立即結束
+        end = time.time() + 8
+        while time.time() < end:
+            try:
+                try:
+                    msg = driver.find_element(By.ID, 'lblMessage').text
+                except Exception:
+                    msg = ''
+                low = (msg or '').lower()
+                if any(k in low for k in [
+                    '登入帳號或密碼錯誤', '輸入帳號或密碼錯誤', '帳號或密碼錯誤',
+                    'login failed', 'invalid password', 'authentication failed']):
+                    try:
+                        driver.save_screenshot('login_error.png')
+                        save_html(driver, 'login_error.html')
+                    except Exception:
+                        pass
+                    print('❌ 登入失敗：', msg)
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    import os
+                    os._exit(2)
+
+                try:
+                    body_text = driver.find_element(By.TAG_NAME, 'body').text
+                except Exception:
+                    body_text = ''
+                lowb = (body_text or '').lower()
+                if any(k in lowb for k in [
+                    '登入帳號或密碼錯誤', '輸入帳號或密碼錯誤', '帳號或密碼錯誤',
+                    'login failed', 'invalid password', 'authentication failed']):
+                    try:
+                        driver.save_screenshot('login_error.png')
+                        save_html(driver, 'login_error.html')
+                    except Exception:
+                        pass
+                    print('❌ 登入失敗（body）：帳號或密碼錯誤')
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    import os
+                    os._exit(2)
+            except SystemExit:
+                raise
+            except Exception:
+                pass
+            time.sleep(0.5)
     except TimeoutException:
         pass
 
@@ -432,7 +476,7 @@ def main():
                     df_csv[col] = '="' + df_csv[col].str.replace('"', '""') + '"'
 
             output_attempts = [
-                (f"{USERNAME}_ranking_records.csv", f"{USERNAME}_ranking_records.json", f"{USERNAME}_ranking_records.xlsx"),
+                ("ranking_records.csv", "ranking_records.json", "ranking_records.xlsx"),
                 (os.path.expanduser("~/Desktop/ranking_records.csv"),
                  os.path.expanduser("~/Desktop/ranking_records.json"),
                  os.path.expanduser("~/Desktop/ranking_records.xlsx")),
@@ -515,7 +559,7 @@ def main():
     finally:
         time.sleep(2 if not HEADLESS else 0)
         driver.quit()
-    local_csv_path = USERNAME + "_ranking_records.csv"
-    upload_to_gdrive(local_csv_path,USERNAME + "_uploaded_ranking_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
+    local_csv_path = "ranking_records.csv"
+    upload_to_gdrive(local_csv_path,"uploaded_ranking_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
 if __name__ == "__main__":
     main()

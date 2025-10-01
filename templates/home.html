@@ -12,28 +12,30 @@
     .form-hint { color:#6c757d; font-size: .9rem; }
     .sticky-footer { position: sticky; bottom: 0; background: #fff; padding: .75rem 0; border-top: 1px solid #eee; }
     table { font-size: 14px; }
+    /* 查詢結果：表頭全部向左對齊 */
+    .table thead th, table thead th { text-align: left !important; }
   </style>
 </head>
 <body>
 <div class="container container-narrow">
 
   <h3 class="mb-3">世新教務｜查詢小工具</h3>
-  <p class="text-muted">先選要查的類型，可選擇「同時跑爬蟲」取得最新資料；也可以只讀取上次輸出的 CSV。</p>
+  <p class="text-muted">先選要查的類型並輸入學號密碼，送出後系統會自動比對並更新環境變數與資料，顯示並提供最新 CSV 下載。</p>
 
-  {% with messages = get_flashed_messages() %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-      <div class="alert alert-warning">
-        {% for m in messages %}
+      {% for category, m in messages %}
+        <div class="alert alert-{{ 'warning' if not category else category }}">
           <div>{{ m }}</div>
-        {% endfor %}
-      </div>
+        </div>
+      {% endfor %}
     {% endif %}
   {% endwith %}
 
   <form class="card p-3 mb-4" method="post" action="{{ url_for('query') }}">
-    <div class="row g-3 align-items-end">
+    <div class="row g-3 align-items-center">
       <div class="col-md-4">
-        <label class="form-label">查詢類型</label>
+        <label class="form-label mb-0">查詢類型</label>
         <select class="form-select" name="kind" required>
           <option value="">— 請選擇 —</option>
           <option value="timetable" {% if kind=='timetable' %}selected{% endif %}>SC0106：課表《清單一》</option>
@@ -43,16 +45,11 @@
         </select>
       </div>
       <div class="col-md-4">
-        <label class="form-label">關鍵字（可留空）</label>
+        <label class="form-label mb-0">關鍵字（可留空）</label>
         <input class="form-control" type="text" name="keyword" value="{{ keyword or '' }}" placeholder="科目、老師、教室、備註…">
         <div class="form-hint">對所有欄位做包含搜尋（不分大小寫）。</div>
       </div>
-      <div class="col-md-4">
-        <div class="form-check mt-4">
-          <input class="form-check-input" type="checkbox" id="do_scrape" name="do_scrape">
-          <label class="form-check-label" for="do_scrape">同時執行爬蟲（更新到最新）</label>
-        </div>
-      </div>
+      <!-- 自動執行爬蟲：後端已改為每次送出自動比對/更新環境並執行爬蟲，此欄位移除 -->
     </div>
 
     <hr>
@@ -104,4 +101,3 @@
 </div>
 </body>
 </html>
-

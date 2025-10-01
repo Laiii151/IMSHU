@@ -28,13 +28,6 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 
-# 將標準輸出編碼設定為 UTF-8
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-
-# 然後你的程式碼繼續...
-# ...
-print("\u2705 已載入 .env 檔案")
-
 # 載入環境變數
 try:
     from dotenv import load_dotenv
@@ -190,7 +183,59 @@ def login_if_needed(driver):
             password_field.submit()
         
         print("⏳ 等待登入完成...")
-        time.sleep(3)
+        time.sleep(0.8)
+        # 提交後短暫輪詢錯誤訊息，若偵測到立即結束
+        end = time.time() + 8
+        while time.time() < end:
+            try:
+                # 先看常見的訊息元素
+                try:
+                    msg = driver.find_element(By.ID, 'lblMessage').text
+                except Exception:
+                    msg = ''
+                low = (msg or '').lower()
+                if any(k in low for k in [
+                    '登入帳號或密碼錯誤', '輸入帳號或密碼錯誤', '帳號或密碼錯誤',
+                    'login failed', 'invalid password', 'authentication failed']):
+                    try:
+                        driver.save_screenshot('login_error.png')
+                        save_html(driver, 'login_error.html')
+                    except Exception:
+                        pass
+                    print('❌ 登入失敗：', msg)
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    import os
+                    os._exit(2)
+
+                # 廣泛比對 body 文字
+                try:
+                    body_text = driver.find_element(By.TAG_NAME, 'body').text
+                except Exception:
+                    body_text = ''
+                lowb = (body_text or '').lower()
+                if any(k in lowb for k in [
+                    '登入帳號或密碼錯誤', '輸入帳號或密碼錯誤', '帳號或密碼錯誤',
+                    'login failed', 'invalid password', 'authentication failed']):
+                    try:
+                        driver.save_screenshot('login_error.png')
+                        save_html(driver, 'login_error.html')
+                    except Exception:
+                        pass
+                    print('❌ 登入失敗（body）：帳號或密碼錯誤')
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    import os
+                    os._exit(2)
+            except SystemExit:
+                raise
+            except Exception:
+                pass
+            time.sleep(0.5)
         
     except TimeoutException:
         print("ℹ️ 沒有找到登入表單，可能已經登入或頁面結構不同")
@@ -719,7 +764,7 @@ def main():
         if not attendance_df.empty:
             # 嘗試多個輸出位置
             output_attempts = [
-                (f"{USERNAME}_attendance_records.csv", f"{USERNAME}_attendance_records.json"),
+                ("attendance_records.csv", "attendance_records.json"),
                 (os.path.expanduser("~/Desktop/attendance_records.csv"), os.path.expanduser("~/Desktop/attendance_records.json")),
                 (os.path.expanduser("~/Downloads/attendance_records.csv"), os.path.expanduser("~/Downloads/attendance_records.json")),
                 (f"C:\\IMSHU\\{USERNAME}_attendance_records.csv", f"C:\\IMSHU\\{USERNAME}_attendance_records.json"),
@@ -791,8 +836,8 @@ def main():
             print("   2. 頁面結構是否有變化")
             print("   3. 選擇器是否需要更新")
         
-        local_csv_path = USERNAME + "_attendance_records.csv"
-        upload_to_gdrive(local_csv_path,USERNAME + "_uploaded_attendance_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
+        local_csv_path = "attendance_records.csv"
+        upload_to_gdrive(local_csv_path,"uploaded_attendance_records.csv", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
         print("\n✅ 爬蟲執行完成！")
         
     except Exception as e:

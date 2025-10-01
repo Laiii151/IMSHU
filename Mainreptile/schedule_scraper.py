@@ -32,12 +32,7 @@ from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
 import pickle
-# 將標準輸出編碼設定為 UTF-8
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
-# 然後你的程式碼繼續...
-# ...
-print("\u2705 已載入 .env 檔案")
 
 HEADLESS = False     # 需要背景跑可改 True
 HOME_URL = "https://www.shu.edu.tw/"
@@ -84,6 +79,71 @@ def wait_present(driver, by, sel, timeout=MAX_WAIT):
 def save_html(driver, path):
     with open(path, "w", encoding="utf-8") as f:
         f.write(driver.page_source)
+
+def detect_login_error_and_abort(driver):
+    """若頁面顯示帳密錯誤等訊息，立刻截圖並結束程式（exit code 2）。"""
+    try:
+        body_text = driver.find_element(By.TAG_NAME, "body").text
+    except Exception:
+        body_text = ""
+    text_low = (body_text or "").lower()
+    keywords = [
+        "登入帳號或密碼錯誤", "輸入帳號或密碼錯誤", "帳號或密碼錯誤",
+        "login failed", "invalid password", "authentication failed"
+    ]
+    if any(k.lower() in text_low for k in keywords):
+        try:
+            driver.save_screenshot("login_error.png")
+            save_html(driver, "login_error.html")
+        except Exception:
+            pass
+        # 讓父程式能辨識為登入錯誤
+        print("❌ 登入失敗：帳號或密碼錯誤", flush=True)
+        try:
+            driver.quit()
+        except Exception:
+            pass
+        import os
+        os._exit(2)
+
+def wait_login_result_or_error(driver, timeout_seconds: int = 8):
+    """提交後短暫輪詢：若出現錯誤訊息立即中止；否則返回繼續流程。"""
+    end = time.time() + max(1, timeout_seconds)
+    last_err = None
+    while time.time() < end:
+        try:
+            # 先檢查常見訊息容器
+            try:
+                msg = driver.find_element(By.ID, "lblMessage").text
+            except Exception:
+                msg = ""
+            if msg:
+                low = msg.lower()
+                if any(k in low for k in [
+                    '登入帳號或密碼錯誤', '輸入帳號或密碼錯誤', '帳號或密碼錯誤',
+                    'login failed', 'invalid password', 'authentication failed']):
+                    print("❌ 登入失敗：", msg)
+                    try:
+                        driver.save_screenshot('login_error.png')
+                        save_html(driver, 'login_error.html')
+                    except Exception:
+                        pass
+                    try:
+                        driver.quit()
+                    except Exception:
+                        pass
+                    import os
+                    os._exit(2)
+
+            # 泛化檢查
+            detect_login_error_and_abort(driver)
+        except SystemExit:
+            raise
+        except Exception as e:
+            last_err = e
+        time.sleep(0.5)
+    # 沒檢出錯誤就返回繼續
+    return
 
 def text_clean(s: str) -> str:
     s = (s or "").replace("\xa0", " ")
@@ -421,11 +481,11 @@ def screenshot_list2(driver):
             # 裁切並保存
             if right > left and bottom > top:
                 cropped_image = full_image.crop((left, top, right, bottom))
-                cropped_image.save(USERNAME + "_timetable_list2.png")
+                cropped_image.save("timetable_list2.png")
                 print(f"📸 課表清單二截圖已保存：{USERNAME}_timetable_list2.png")
             else:
                 print("⚠️ 裁切區域無效，保存完整截圖")
-                full_image.save(USERNAME + "_timetable_list2_full.png")
+                full_image.save("timetable_list2_full.png")
 
             # 刪除臨時檔案
             os.remove("temp_full_screenshot.png")
@@ -445,8 +505,8 @@ def screenshot_list2(driver):
         print(f"⚠️ 截圖清單二時發生錯誤：{e}")
         try:
             # 最終備用方案：截圖整個頁面
-            driver.save_screenshot(USERNAME + "_timetable_list2_emergency.png")
-            print(f"📸 緊急備用截圖已保存：{USERNAME}_timetable_list2_emergency.png")
+            driver.save_screenshot("timetable_list2_emergency.png")
+            print(f"📸 緊急備用截圖已保存：timetable_list2_emergency.png")
         except Exception:
             pass
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -499,14 +559,14 @@ def main():
 
         df = parse_list1(driver)
         if df.empty:
-            save_html(driver, USERNAME + "_list1_debug.html")
+            save_html(driver, "list1_debug.html")
             raise RuntimeError("清單一解析不到資料；已輸出 list1_debug.html 供檢查")
 
         # 匯出清單一（不做 pivot/merge/展開節次，完全照清單一）
-        df.to_csv(USERNAME + "_timetable_list1.csv", index=False, encoding="utf-8-sig")
-        df.to_json(USERNAME + "_timetable_list1.json", orient="records", force_ascii=False, indent=2)
+        df.to_csv("timetable_list1.csv", index=False, encoding="utf-8-sig")
+        df.to_json("timetable_list1.json", orient="records", force_ascii=False, indent=2)
 
-        with pd.ExcelWriter(USERNAME + "_timetable_list1.xlsx", engine="xlsxwriter") as writer:
+        with pd.ExcelWriter("timetable_list1.xlsx", engine="xlsxwriter") as writer:
             df.to_excel(writer, index=False, sheet_name="清單一")
             ws = writer.sheets["清單一"]
             # 簡單寬度（可依需求調整）
@@ -533,7 +593,7 @@ def main():
             driver.quit()
         except Exception:
             pass
-    local_csv_path = USERNAME + "_timetable_list2.png"
-    upload_to_gdrive(local_csv_path,USERNAME + "_uploaded_timetable_list2.png", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
+    local_csv_path =USERNAME + "timetable_list2.png"
+    upload_to_gdrive(local_csv_path,"uploaded_timetable_list2.png", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
 if __name__ == "__main__":
     main()

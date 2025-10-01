@@ -25,13 +25,6 @@ import pickle
 import sys
 import codecs
 
-# 將標準輸出編碼設定為 UTF-8
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
-
-# 然後你的程式碼繼續...
-# ...
-print("\u2705 已載入 .env 檔案")
-
 # 載入環境變數
 try:
     from dotenv import load_dotenv
@@ -742,8 +735,8 @@ def main():
         
         # 輸出檔案
         if not courses_df.empty:
-            courses_df.to_csv(USERNAME + "_grades_courses_fixed.csv", index=False, encoding="utf-8-sig")
-            courses_df.to_json(USERNAME + "_grades_courses_fixed.json", orient="records", force_ascii=False, indent=2)
+            courses_df.to_csv("grades_courses_fixed.csv", index=False, encoding="utf-8-sig")
+            courses_df.to_json("grades_courses_fixed.json", orient="records", force_ascii=False, indent=2)
             print(f"✅ 已輸出課程資料：{len(courses_df)} 筆")
             
             # 顯示詳細統計
@@ -772,8 +765,8 @@ def main():
             print("⚠️ 沒有找到課程資料")
         
         if not summary_df.empty:
-            summary_df.to_csv(USERNAME + "_grades_summary_fixed.csv", index=False, encoding="utf-8-sig")
-            summary_df.to_json(USERNAME + "_grades_summary_fixed.json", orient="records", force_ascii=False, indent=2)
+            summary_df.to_csv("grades_summary_fixed.csv", index=False, encoding="utf-8-sig")
+            summary_df.to_json("grades_summary_fixed.json", orient="records", force_ascii=False, indent=2)
             print(f"✅ 已輸出彙總資料：{len(summary_df)} 筆")
         else:
             print("⚠️ 沒有找到彙總資料")
@@ -823,8 +816,8 @@ def main():
         time.sleep(2 if not HEADLESS else 0)
         driver.quit()
 
-    local_csv_path = USERNAME + "_grades_courses_fixed.csv"
-    upload_to_gdrive(local_csv_path, USERNAME + "_uploaded_grades_courses_fixed", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
+    local_csv_path = "grades_courses_fixed.csv"
+    upload_to_gdrive(local_csv_path,"uploaded_grades_courses_fixed", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
     print("🚀 任務完成，程式結束。")
 
 
