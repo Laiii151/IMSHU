@@ -4,9 +4,8 @@ python-dotenv==1.0.1
 selenium==4.22.0
 webdriver-manager==4.0.2
 XlsxWriter==3.2.0
-gunicorn
-buildpack-deps
-google-api-python-client==2.100.0
-google-auth==2.24.0
-google-auth-httplib2==0.1.0
-google-auth-oauthlib==1.0.0
+gunicorn==22.0.0
+google-api-python-client
+google-auth-oauthlib
+
+

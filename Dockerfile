@@ -16,6 +16,7 @@ WORKDIR /app
 # 5. 複製 requirements.txt 並安裝 Python 套件
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir google-api-python-client
 
 # 6. 複製整個專案的程式碼到工作目錄
 COPY . .
