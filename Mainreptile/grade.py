@@ -34,7 +34,7 @@ if not USERNAME or not PASSWORD:
     print("📝 .env 檔案格式範例：")
     print("SHU_USERNAME=你的學號")
     print("SHU_PASSWORD=你的密碼")
-    exit(1)
+    raise ValueError("❌ 致命錯誤：SHU_USERNAME 或 SHU_PASSWORD 環境變數未設定！")
 
 HOME_URL = "https://www.shu.edu.tw/"
 HEADLESS = False
