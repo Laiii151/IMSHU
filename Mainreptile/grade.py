@@ -51,6 +51,10 @@ def build_driver():
     opt.add_argument("--no-sandbox")
     opt.add_argument("--disable-gpu")
     opt.add_argument("--window-size=1440,900")
+    opt.add_argument("--disable-dev-shm-usage") # 尤其在 Docker 中非常重要
+    opt.add_argument("--disable-software-rasterizer")
+    opt.add_argument("--disable-extensions")
+    opt.add_argument("--log-level=3") # 減少日誌輸出
     chrome_bin = os.getenv('CHROME_BIN') 
     if chrome_bin:
         opt.binary_location = chrome_bin

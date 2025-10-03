@@ -42,6 +42,6 @@ COPY . .
 
 # 7. 設定 Gunicorn 的啟動指令
 # Render 會自動偵測 PORT 環境變數，我們用 10000 作為預設值
-CMD gunicorn --bind 0.0.0.0:5000 app:app
+CMD gunicorn --bind 0.0.0.0:5000 app:app --workers 1 --timeout 120
 
 
