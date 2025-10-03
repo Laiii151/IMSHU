@@ -6,7 +6,33 @@
 🔍 尋找校務系統連結...
 ✅ 成功點擊: css=body > div.logosearch-area > div.n2021-area > p > a:nth-child(4)
 🔍 尋找學生教務系統連結...
-✅ 成功點擊: css=body > div:nth-child(10) > div > div.sm-page-all-area > div:nth-child(2) > div.ct-sub-sbox.ct-sub-nsbox.ct-sub-nsortbox > a:nth-child(9)
+點擊失敗 (css: body > div:nth-child(10) > div > div.sm-page-all-area > div:nth-child(2) > div.ct-sub-sbox.ct-sub-nsbox.ct-sub-nsortbox > a:nth-child(9)): Message: no such element: Unable to locate element: {"method":"css selector","selector":"body > div:nth-child(10) > div > div.sm-page-all-area > div:nth-child(2) > div.ct-sub-sbox.ct-sub-nsbox.ct-sub-nsortbox > a:nth-child(9)"}
+  (Session info: chrome=140.0.7339.208); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#no-such-element-exception
+Stacktrace:
+	GetHandleVerifier [0x0x77c333+65459]
+	GetHandleVerifier [0x0x77c374+65524]
+	(No symbol) [0x0x59d973]
+	(No symbol) [0x0x5e76e7]
+	(No symbol) [0x0x5e7a8b]
+	(No symbol) [0x0x62dea2]
+	(No symbol) [0x0x609e44]
+	(No symbol) [0x0x62b606]
+	(No symbol) [0x0x609bf6]
+	(No symbol) [0x0x5db38e]
+	(No symbol) [0x0x5dc274]
+	GetHandleVerifier [0x0x9feda3+2697763]
+	GetHandleVerifier [0x0x9f9ec7+2677575]
+	GetHandleVerifier [0x0x7a4194+228884]
+	GetHandleVerifier [0x0x7949f8+165496]
+	GetHandleVerifier [0x0x79b18d+192013]
+	GetHandleVerifier [0x0x7847d8+99416]
+	GetHandleVerifier [0x0x784972+99826]
+	GetHandleVerifier [0x0x76ebea+10346]
+	BaseThreadInitThunk [0x0x75ea5d49+25]
+	RtlInitializeExceptionChain [0x0x775ed6db+107]
+	RtlGetAppContainerNamedObjectPath [0x0x775ed661+561]
+
+✅ 成功點擊: css=body > div:nth-child(11) > div > div.sm-page-all-area > div:nth-child(2) > div.ct-sub-sbox.ct-sub-nsbox.ct-sub-nsortbox > a:nth-child(9)
 ✅ 已進入學生教務系統
 🔐 檢查是否需要登入...
 📝 輸入帳號密碼...
@@ -110,6 +136,5 @@
 114 第一學期 INF-410-05-A1 畢業專題(二) 施朝正    不扣考    不扣考      0           明細
 114 第一學期 INF-410-05-A1 畢業專題(二) 林宏遠    不扣考    不扣考      0           明細
 114 第一學期 INF-457-01-A1   ０網路安全 范修維    不扣考    不扣考      0           明細
-❌ 上傳檔案失敗: [Errno 2] No such file or directory: 'client_secret_510785795424-m7u6jrs0btmmpp79ppr6spf8sa5ou1e5.apps.googleusercontent.com.json'
 
 ✅ 爬蟲執行完成！
