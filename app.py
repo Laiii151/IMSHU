@@ -12,15 +12,6 @@ from flask import Flask, render_template, request, send_file, redirect, url_for,
 from dotenv import load_dotenv
 from dotenv import set_key
 
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2 import service_account
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
-import pickle
-
 load_dotenv()
 
 app = Flask(__name__)
@@ -28,6 +19,11 @@ app.secret_key = os.getenv("APP_SECRET", "dev-secret")  # for flash()
 
 # === 設定：請把路徑改成你電腦上實際的檔名 ===
 # 建議把你的四個爬蟲檔擺一起（或改成絕對路徑）
+# 你的實際檔名位於「Main reptile/」資料夾中，對應如下：
+# - 課表（清單一）：Main reptile/schedule_scraper.py → 產出 timetable_list1.csv
+# - 歷年成績：      Main reptile/grade.py        → 產出 grades_courses_fixed.csv / grades_summary_fixed.csv
+# - 歷年名次：      Main reptile/ranking_scraper.py → 產出 ranking_records.csv
+# - 出缺勤記錄：    Main reptile/attendance_scraper.py → 產出 attendance_records.csv
 BASE_DIR = Path(__file__).parent.resolve()
 SCRIPTS = {
     "timetable": str((BASE_DIR / "Mainreptile" / "schedule_scraper.py").resolve()),
@@ -35,7 +31,6 @@ SCRIPTS = {
     "ranking":   str((BASE_DIR / "Mainreptile" / "ranking_scraper.py").resolve()),
     "attendance":str((BASE_DIR / "Mainreptile" / "attendance_scraper.py").resolve()),
 }
-
 
 # 各腳本跑完後**預期**會產生的檔案（用來找最新一份）
 OUTPUTS = {
@@ -68,6 +63,7 @@ SCRIPT_TIMEOUTS = {
     "ranking":   int(os.getenv("TIMEOUT_RANKING", "300")),
     "attendance":int(os.getenv("TIMEOUT_ATTENDANCE", "300")),
 }
+
 
 def run_script(kind: str, env_override: Dict[str, Any], work_dir: Optional[Path] = None) -> Dict[str, Any]:
     """
@@ -119,6 +115,7 @@ def run_script(kind: str, env_override: Dict[str, Any], work_dir: Optional[Path]
     err_path.write_text(stderr, encoding="utf-8")
     print(f"[RET] code={ret_code}")
     return {"code": ret_code, "out": str(out_path), "err": str(err_path)}
+
 
 def _log_contains_login_error(text: str) -> bool:
     """粗略判斷是否為登入帳號/密碼錯誤（關鍵字比對）。"""
@@ -193,6 +190,7 @@ def filter_df(df: pd.DataFrame, keyword: str) -> pd.DataFrame:
 def index():
     return render_template("home.html")
 
+
 @app.route("/query", methods=["POST"])
 def query():
     kind = request.form.get("kind")  # timetable / grades / ranking / attendance
@@ -243,7 +241,6 @@ def query():
             LAST_USER_FILE.write_text(str(user), encoding="utf-8")
         except Exception:
             pass
-
 
     # 建立目錄：data/<username>
     work_dir = DATA_ROOT / (effective_user or "_unknown")
@@ -316,49 +313,6 @@ def query():
     cols = [c for c in pref if c in df.columns]
     view_df = df[cols] if cols else df
 
-    png_path = None
-    txt_path = None
-    for line in out_text.splitlines():
-        if line.startswith("DEBUG_ERROR_PNG:"):
-            png_path = line.split(":")[1].strip()
-        if line.startswith("DEBUG_ERROR_TXT:"):
-            txt_path = line.split(":")[1].strip()
-            
-    # 2. 如果找到錯誤檔案路徑，嘗試讀取並輸出內容
-    # 注意：這些檔案位於 subprocess 的 CWD (例如 data/A111223022)
-    current_cwd = str(BASE_DIR / "data" / os.getenv('SHU_USERNAME', 'A000000000')) # 假設 CWD 是這裡
-    
-    if png_path:
-        full_png_path = Path(current_cwd) / png_path
-        try:
-            # 將 PNG 轉換為 Base64 字串並輸出到日誌
-            import base64
-            with open(full_png_path, "rb") as f:
-                base64_png = base64.b64encode(f.read()).decode('utf-8')
-            
-            # **列印到日誌**
-            print(f"*** DEBUG SCREENSHOT BASE64 ({png_path}) ***")
-            print(base64_png)
-            print("************************************************")
-            
-        except Exception as e:
-            print(f"無法讀取或轉換 PNG 檔案 ({png_path}): {e}")
-
-    if txt_path:
-        full_txt_path = Path(current_cwd) / txt_path
-        try:
-            # 讀取 page_text 偵錯檔案內容並輸出
-            with open(full_txt_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            
-            # **列印到日誌**
-            print(f"*** DEBUG PAGE TEXT ({txt_path}) ***")
-            print(content)
-            print("*************************************")
-            
-        except Exception as e:
-            print(f"無法讀取 TXT 偵錯檔案 ({txt_path}): {e}")
-
     # 把目前顯示的 CSV 檔名也帶回前端（給下載）
     return render_template(
         "home.html",
@@ -367,7 +321,6 @@ def query():
         kind=kind,
         keyword=keyword
     )
-    
 
 
 @app.route("/download")
@@ -383,3 +336,4 @@ def download():
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
+

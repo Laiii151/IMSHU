@@ -14,17 +14,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2 import service_account
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
-import pickle
-import sys
-import codecs
-
 # 載入環境變數
 try:
     from dotenv import load_dotenv
@@ -63,7 +52,6 @@ def build_driver():
     opt.add_argument("--window-size=1440,900")
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
 
-# 精準點擊
 def js_click(driver, el):
     driver.execute_script("""
         const el = arguments[0];
@@ -82,7 +70,6 @@ def find_and_js_click(driver, selector: str, by="css") -> bool:
     except Exception:
         return False
 
-#嘗試一堆選擇器 成功就返回
 def click_first_working(driver, selectors: List[Tuple[str, str]]) -> bool:
     for by, sel in selectors:
         if find_and_js_click(driver, sel, by=by):
@@ -124,21 +111,21 @@ def goto_student_system_from_home(driver):
 
 def login_if_needed(driver):
     try:
-        user = WebDriverWait(driver, 12).until(
+        u = WebDriverWait(driver, 12).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='text'],input[autocomplete='username']"))
         )
-        pwd = WebDriverWait(driver, 12).until(
+        p = WebDriverWait(driver, 12).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='password'],input[autocomplete='current-password']"))
         )
-        user.clear()
-        user.send_keys(USERNAME)
-        pwd.clear()
-        pwd.send_keys(PASSWORD)
+        u.clear()
+        u.send_keys(USERNAME)
+        p.clear()
+        p.send_keys(PASSWORD)
         try:
             btn = driver.find_element(By.CSS_SELECTOR, "input[type='submit'],button[type='submit']")
             js_click(driver, btn)
         except NoSuchElementException:
-            pwd.submit()
+            p.submit()
         time.sleep(1.2)
     except TimeoutException:
         pass
@@ -350,7 +337,6 @@ def parse_html_table(driver):
     
     return courses_df, summaries_df
 
-#先看HTML表格能不能解析
 def parse_table_row(cell_texts, current_year):
     """
     解析表格行
@@ -399,7 +385,6 @@ def parse_table_row(cell_texts, current_year):
         print(f"解析表格行失敗: {e}")
         return None
 
-#讀純文字
 def parse_text_content(driver):
     """
     改進的文字內容解析
@@ -434,7 +419,7 @@ def parse_text_content(driver):
         # 跳過表頭和無關行
         skip_keywords = [
             '選別', '科目', '學分', '成績', '上學期', '下學期', 
-            'SD0101', '個人歷年成績', '資管智網', '賴逸庭',
+            'SD0101', '個人歷年成績', '資管AI', '林廷叡',
             '學業成績總平均', '修習學分數', '實得學分數', '操行成績'
         ]
         
@@ -756,42 +741,25 @@ def main():
         print("✅ 爬蟲執行完成！")
         
     except Exception as e:
-        # 使用時間戳記生成獨特的檔案名稱
-        timestamp = time.strftime("%Y%m%d%H%M%S")
-        error_png = f"error_{timestamp}.png"
-        error_html = f"error_{timestamp}.html"
-        error_txt = f"page_text_{timestamp}.txt"
-        
         print(f"❌ 執行失敗: {e}")
-        
-        # 儲存錯誤檔案
-        driver.save_screenshot(error_png)
-        save_html(driver, error_html) 
+        driver.save_screenshot("error_final.png")
+        save_html(driver, "error_final.html")
         
         # 輸出除錯資訊
         try:
-            # ... 省略 page_text 獲取邏輯 ...
-            # ...
-            with open(error_txt, "w", encoding="utf-8") as f:
+            driver.switch_to.default_content()
+            driver.switch_to.frame("main")
+            page_text = driver.find_element(By.TAG_NAME, "body").text
+            with open("page_text_debug.txt", "w", encoding="utf-8") as f:
                 f.write(page_text)
-            print(f"已儲存除錯資訊到 {error_txt}")
-        except Exception:
-            pass # 確保即使切換 Frame 失敗，程式也不會崩潰
-            
-        # *** 新增：將錯誤檔案的路徑輸出到標準輸出 (stdout) ***
-        # 這是一個訊號，讓 app.py 知道產生了哪些錯誤檔案
-        print(f"DEBUG_ERROR_PNG:{error_png}")
-        print(f"DEBUG_ERROR_TXT:{error_txt}")
-
-        # 確保在失敗時，程式以錯誤碼退出
-        sys.exit(1)
+            print("已儲存除錯資訊到 page_text_debug.txt")
+        except:
+            pass
         
         raise
     finally:
         time.sleep(2 if not HEADLESS else 0)
         driver.quit()
-    print("🚀 任務完成，程式結束。")
-
 
 if __name__ == "__main__":
     main()
