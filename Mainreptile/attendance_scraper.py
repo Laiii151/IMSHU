@@ -9,7 +9,7 @@ import os, sys, traceback, time
 from typing import List, Tuple, Optional, Dict, Any
 import re
 import pandas as pd
-
+from pathlib import Path
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -23,12 +23,10 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException,
 
 # 載入環境變數
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
-    print("✅ 已載入 .env 檔案")
-except ImportError:
-    print("⚠️ 未安裝 python-dotenv，請執行: pip install python-dotenv")
-    print("⚠️ 或手動設定環境變數")
+    from dotenv import load_dotenv, find_dotenv
+    load_dotenv(find_dotenv(), override=False)   # 會從 repo 根找 .env
+except Exception:
+    pass
 
 # ========= 設定區 =========
 # 從環境變數讀取帳號密碼
@@ -64,10 +62,9 @@ def build_driver():
     opt.binary_location = os.getenv("CHROME_BIN", "/usr/bin/chromium")
     driver = webdriver.Chrome(options=opt)
     driver.set_page_load_timeout(60)
-    return webdriver.Chrome(options=opts)
     #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
     #driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    #return driver
+    return driver
 
 def js_click(driver, el):
     """JavaScript 點擊元素"""
@@ -695,6 +692,14 @@ def clean_attendance_data(records):
 # ---------------- 主程式 ----------------
 def main():
     """主程式入口"""
+    user = os.getenv("SHU_USERNAME")
+    pw   = os.getenv("SHU_PASSWORD")
+    if not user or not pw:
+        raise RuntimeError("缺少 SHU_USERNAME/SHU_PASSWORD 環境變數（請到 Render 設定）")
+
+    # 2) 工作目錄（母程式已把 cwd 設在 data/<學號>，這裡直接使用）
+    out_dir = Path.cwd()
+    out_dir.mkdir(parents=True, exist_ok=True)    
     driver = build_driver()
     
     try:

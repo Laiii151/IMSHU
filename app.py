@@ -65,56 +65,32 @@ SCRIPT_TIMEOUTS = {
 }
 
 
-def run_script(kind: str, env_override: Dict[str, Any], work_dir: Optional[Path] = None) -> Dict[str, Any]:
-    """
-    呼叫對應的爬蟲腳本。回傳 process returncode。
-    會把 SHU_USERNAME / SHU_PASSWORD / HEADLESS 等環境變數覆寫進去（不落地存檔）。
-    """
-    script = SCRIPTS.get(kind)
-    if not script or not Path(script).exists():
-        raise FileNotFoundError(f"找不到爬蟲腳本：{script}（請確認 SCRIPTS 設定與檔名）")
+def run_spider(kind: str, student_id: str):
+    script = SCRIPTS[kind]                       # 你現在已是「絕對路徑」，OK
+    work_dir = Path("data") / student_id
+    work_dir.mkdir(parents=True, exist_ok=True)
 
     env = os.environ.copy()
-    env.update({k: str(v) for k, v in env_override.items() if v is not None})
-    # 強制子行程以 UTF-8 輸出，避免 Windows cp950 解碼錯誤
-    env["PYTHONIOENCODING"] = "utf-8"
+    cmd = [sys.executable, script]               # 用同一顆 Python
 
-    # 讓 selenium 在 server 上能跑
-    if "HEADLESS" not in env:
-        env["HEADLESS"] = os.getenv("HEADLESS", "True")
+    proc = subprocess.run(
+        cmd, cwd=work_dir, env=env,
+        capture_output=True, text=True, timeout=1800
+    )
 
-    # 執行
-    run_cwd = Path(work_dir) if work_dir else Path.cwd()
-    print(f"[RUN] {PYTHON_BIN} {script} (cwd={run_cwd})")
-    try:
-        proc = subprocess.run(
-            [PYTHON_BIN, script],
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            cwd=str(run_cwd),
-            timeout=SCRIPT_TIMEOUTS.get(kind, 300)
-        )
-        ret_code = proc.returncode
-        stdout = proc.stdout or ""
-        stderr = proc.stderr or ""
-    except subprocess.TimeoutExpired as te:
-        ret_code = 124  # 常見的 timeout 代碼
-        stdout = (te.stdout or "") if hasattr(te, "stdout") else ""
-        stderr = (te.stderr or "") if hasattr(te, "stderr") else ""
-        stderr += "\n[ERROR] 子行程執行逾時，已中止。"
-    # 把標準輸出／錯誤留檔方便除錯（存到使用者資料夾下的 logs/）
+    logs = work_dir / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
-    logs_dir = run_cwd/"logs"
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    out_path = logs_dir/f"{kind}_{ts}.out.txt"
-    err_path = logs_dir/f"{kind}_{ts}.err.txt"
-    out_path.write_text(stdout, encoding="utf-8")
-    err_path.write_text(stderr, encoding="utf-8")
-    print(f"[RET] code={ret_code}")
-    return {"code": ret_code, "out": str(out_path), "err": str(err_path)}
+    (logs / f"{kind}_{ts}.out.txt").write_text(proc.stdout or "", encoding="utf-8")
+    (logs / f"{kind}_{ts}.err.txt").write_text(
+        f"[RET] code={proc.returncode}\n\n{proc.stderr or ''}", encoding="utf-8"
+    )
+
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"{kind} 失敗（code={proc.returncode}）。請打開 "
+            f"{logs}/ 中最新的 .err.txt 看完整錯誤"
+        )
 
 
 def _log_contains_login_error(text: str) -> bool:
@@ -184,6 +160,60 @@ def filter_df(df: pd.DataFrame, keyword: str) -> pd.DataFrame:
         mask = mask | df[col].astype(str).str.lower().str.contains(kw, na=False)
     return df[mask]
 
+def run_spider(kind: str, abs_script_path: str, student_id: str) -> Path:
+    """
+    執行子程式並把 stdout/stderr 落檔。
+    回傳 logs 目錄路徑，讓呼叫端可提示使用者去看。
+    """
+    # 1) 準備工作資料夾
+    work_dir = Path("data") / student_id
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    # 2) 目標腳本確認
+    script_path = Path(abs_script_path)
+    if not script_path.exists():
+        raise FileNotFoundError(f"[FATAL] 找不到腳本：{script_path}")
+
+    # 3) 執行（關鍵：capture_output=True + text=True）
+    env = os.environ.copy()
+    cmd = [sys.executable, str(script_path)]
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=work_dir,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=1800,  # 給足夠時間（視需求調整）
+        )
+    except subprocess.TimeoutExpired as te:
+        # 超時也要落檔，方便診斷
+        _write_logs(kind, work_dir, 124, te.stdout or "", (te.stderr or "") + "\n[Timeout]")
+        raise
+
+    # 4) 落檔
+    logs_dir = _write_logs(kind, work_dir, proc.returncode, proc.stdout or "", proc.stderr or "")
+
+    # 5) 非 0 直接丟錯，讓上層可顯示提示
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"{kind} 失敗（code={proc.returncode}）。請查看 {logs_dir} 中最新的 .err.txt"
+        )
+
+    return logs_dir
+
+
+def _write_logs(kind: str, work_dir: Path, ret: int, out: str, err: str) -> Path:
+    logs_dir = work_dir / "logs"
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    ts = int(time.time())
+    (logs_dir / f"{kind}_{ts}.out.txt").write_text(out, encoding="utf-8")
+    (logs_dir / f"{kind}_{ts}.err.txt").write_text(
+        f"[RET] code={ret}\n\n{err}", encoding="utf-8"
+    )
+    return logs_dir
+
+
 
 @app.route("/", methods=["GET"])
 def index():
@@ -249,8 +279,8 @@ def query():
     if not user or not pwd:
         flash("需要 SHU_USERNAME / SHU_PASSWORD 才能執行爬蟲")
         return redirect(url_for("index"))
-
-    res = run_script(kind, {"SHU_USERNAME": user, "SHU_PASSWORD": pwd}, work_dir=work_dir)
+    res = run_spider(kind, {"SHU_USERNAME": user, "SHU_PASSWORD": pwd}, work_dir=work_dir)
+    #res = run_script(kind, {"SHU_USERNAME": user, "SHU_PASSWORD": pwd}, work_dir=work_dir)
     if res.get("code") != 0:
         if res.get("code") == 2:
             flash("學號或密碼錯誤，請重新輸入。", "danger")
@@ -331,6 +361,31 @@ def download():
     # 直接傳檔讓使用者下載
     return send_file(path, as_attachment=True)
 
+@app.get("/logs/<student_id>")
+def list_logs(student_id):
+    logs_dir = Path("data") / student_id / "logs"
+    if not logs_dir.exists():
+        return f"找不到 logs 目錄：{logs_dir}", 404
+
+    files = sorted(logs_dir.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)
+    html = """
+    <h3>Logs for {{sid}}</h3>
+    <ul>
+    {% for f in files %}
+      <li><a href="/logs/{{sid}}/view?file={{f.name}}">{{f.name}}</a></li>
+    {% endfor %}
+    </ul>
+    """
+    return render_template(html, sid=student_id, files=[f for f in files])
+
+@app.get("/logs/<student_id>/view")
+def view_log(student_id):
+    logs_dir = Path("data") / student_id / "logs"
+    name = request.args.get("file", "")
+    p = (logs_dir / name).resolve()
+    if logs_dir.resolve() not in p.parents or not p.exists():
+        abort(404)
+    return f"<pre style='white-space: pre-wrap'>{p.read_text(encoding='utf-8', errors='ignore')}</pre>"
 
 if __name__ == "__main__":
     # python app.py
