@@ -48,6 +48,16 @@ def build_driver():
     HEADLESS = os.getenv("HEADLESS", "False").lower() in ("true", "1")
     if HEADLESS:
         opt.add_argument("--headless=new")
+            # ====== 修正：禁用 GCM 和其他會引發錯誤的服務 ======
+    opt.add_argument("--disable-gpu")
+    opt.add_argument("--disable-notifications") # 禁用瀏覽器通知
+    opt.add_argument("--disable-infobars")
+    # 禁用所有不需要的 Chrome 服務，特別是 GCM/Cloud Messaging
+    opt.add_argument("--disable-features=NetworkService,NetworkServiceInProcess")
+    opt.add_argument("--disable-background-networking")
+    opt.add_argument("--disable-default-apps")
+    opt.add_argument("--disable-extensions")
+    opt.add_argument("--disable-logging") # 減少日誌輸出
     opt.add_argument("--no-sandbox")
     opt.add_argument("--disable-gpu")
     opt.add_argument("--window-size=1440,900")

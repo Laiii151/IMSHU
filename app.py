@@ -163,7 +163,7 @@ def latest_existing(path_patterns):
     return candidates[0]
 
 
-#def load_csv_safely(path: str) -> pd.DataFrame:
+def load_csv_safely(path: str) -> pd.DataFrame:
     """
  #   嘗試用 UTF-8-SIG 讀，失敗就用 UTF-8。
     """
@@ -171,23 +171,6 @@ def latest_existing(path_patterns):
         return pd.read_csv(path, encoding="utf-8-sig")
     except Exception:
         return pd.read_csv(path, encoding="utf-8")
-
-def load_csv_safely(kind: str) -> Optional[str]:
-    # 1. 取得執行腳本時的資料夾路徑 (例如：/app/data/A111223012)
-    user_data_dir = BASE_DIR / "data" / request.form.get("username") or None
-
-    # 2. 取得預期的檔名列表
-    expected_filenames = OUTPUTS.get(kind, [])
-    
-    # 3. 遍歷所有預期檔名，並組成完整路徑
-    for filename in expected_filenames:
-        full_path = user_data_dir / filename # <--- 這裡進行了結合
-
-        # 4. 檢查檔案是否存在，並返回第一個找到的檔案路徑
-        if full_path.exists():
-            return str(full_path)
-    
-    return None # 找不到檔案
 
 def filter_df(df: pd.DataFrame, keyword: str) -> pd.DataFrame:
     """
