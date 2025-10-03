@@ -756,20 +756,35 @@ def main():
         print("✅ 爬蟲執行完成！")
         
     except Exception as e:
+        # 使用時間戳記生成獨特的檔案名稱
+        timestamp = time.strftime("%Y%m%d%H%M%S")
+        error_png = f"error_{timestamp}.png"
+        error_html = f"error_{timestamp}.html"
+        error_txt = f"page_text_{timestamp}.txt"
+        
         print(f"❌ 執行失敗: {e}")
-        driver.save_screenshot("error_final.png")
-        save_html(driver, "error_final.html")
+        
+        # 儲存錯誤檔案
+        driver.save_screenshot(error_png)
+        save_html(driver, error_html) 
         
         # 輸出除錯資訊
         try:
-            driver.switch_to.default_content()
-            driver.switch_to.frame("main")
-            page_text = driver.find_element(By.TAG_NAME, "body").text
-            with open("page_text_debug.txt", "w", encoding="utf-8") as f:
+            # ... 省略 page_text 獲取邏輯 ...
+            # ...
+            with open(error_txt, "w", encoding="utf-8") as f:
                 f.write(page_text)
-            print("已儲存除錯資訊到 page_text_debug.txt")
-        except:
-            pass
+            print(f"已儲存除錯資訊到 {error_txt}")
+        except Exception:
+            pass # 確保即使切換 Frame 失敗，程式也不會崩潰
+            
+        # *** 新增：將錯誤檔案的路徑輸出到標準輸出 (stdout) ***
+        # 這是一個訊號，讓 app.py 知道產生了哪些錯誤檔案
+        print(f"DEBUG_ERROR_PNG:{error_png}")
+        print(f"DEBUG_ERROR_TXT:{error_txt}")
+
+        # 確保在失敗時，程式以錯誤碼退出
+        sys.exit(1)
         
         raise
     finally:

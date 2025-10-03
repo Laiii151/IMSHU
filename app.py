@@ -69,45 +69,6 @@ SCRIPT_TIMEOUTS = {
     "attendance":int(os.getenv("TIMEOUT_ATTENDANCE", "300")),
 }
 
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-TOKEN_PICKLE = 'token.pickle'
-CREDENTIALS_FILE = 'client_secret_510785795424-m7u6jrs0btmmpp79ppr6spf8sa5ou1e5.apps.googleusercontent.com.json'  # 你的 OAuth 憑證檔名
-
-def authenticate():
-    creds = None
-    if os.path.exists(TOKEN_PICKLE):
-        with open(TOKEN_PICKLE, 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(TOKEN_PICKLE, 'wb') as token:
-            pickle.dump(creds, token)
-    return creds
-
-def upload_to_gdrive(local_file, remote_filename, folder_id=None):
-    try:
-        creds = authenticate()
-        service = build('drive', 'v3', credentials=creds)
-
-        file_metadata = {
-            'name': remote_filename,
-            'mimeType': 'application/vnd.google-apps.spreadsheet'
-        }
-        if folder_id:
-            file_metadata['parents'] = [folder_id]
-
-        media = MediaFileUpload(local_file, mimetype='text/csv')
-        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        print(f"✅ 已成功上傳檔案到 Google Drive, 檔案ID: {file.get('id')}")
-        return True
-    except Exception as e:
-        print(f"❌ 上傳檔案失敗: {e}")
-        return False
-
 def run_script(kind: str, env_override: Dict[str, Any], work_dir: Optional[Path] = None) -> Dict[str, Any]:
     """
     呼叫對應的爬蟲腳本。回傳 process returncode。
@@ -283,6 +244,7 @@ def query():
         except Exception:
             pass
 
+
     # 建立目錄：data/<username>
     work_dir = DATA_ROOT / (effective_user or "_unknown")
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -354,6 +316,49 @@ def query():
     cols = [c for c in pref if c in df.columns]
     view_df = df[cols] if cols else df
 
+    png_path = None
+    txt_path = None
+    for line in out_text.splitlines():
+        if line.startswith("DEBUG_ERROR_PNG:"):
+            png_path = line.split(":")[1].strip()
+        if line.startswith("DEBUG_ERROR_TXT:"):
+            txt_path = line.split(":")[1].strip()
+            
+    # 2. 如果找到錯誤檔案路徑，嘗試讀取並輸出內容
+    # 注意：這些檔案位於 subprocess 的 CWD (例如 data/A111223022)
+    current_cwd = str(BASE_DIR / "data" / os.getenv('SHU_USERNAME', 'A000000000')) # 假設 CWD 是這裡
+    
+    if png_path:
+        full_png_path = Path(current_cwd) / png_path
+        try:
+            # 將 PNG 轉換為 Base64 字串並輸出到日誌
+            import base64
+            with open(full_png_path, "rb") as f:
+                base64_png = base64.b64encode(f.read()).decode('utf-8')
+            
+            # **列印到日誌**
+            print(f"*** DEBUG SCREENSHOT BASE64 ({png_path}) ***")
+            print(base64_png)
+            print("************************************************")
+            
+        except Exception as e:
+            print(f"無法讀取或轉換 PNG 檔案 ({png_path}): {e}")
+
+    if txt_path:
+        full_txt_path = Path(current_cwd) / txt_path
+        try:
+            # 讀取 page_text 偵錯檔案內容並輸出
+            with open(full_txt_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            
+            # **列印到日誌**
+            print(f"*** DEBUG PAGE TEXT ({txt_path}) ***")
+            print(content)
+            print("*************************************")
+            
+        except Exception as e:
+            print(f"無法讀取 TXT 偵錯檔案 ({txt_path}): {e}")
+
     # 把目前顯示的 CSV 檔名也帶回前端（給下載）
     return render_template(
         "home.html",
@@ -362,6 +367,7 @@ def query():
         kind=kind,
         keyword=keyword
     )
+    
 
 
 @app.route("/download")
