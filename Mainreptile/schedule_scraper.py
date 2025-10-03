@@ -509,44 +509,7 @@ def screenshot_list2(driver):
             print(f"📸 緊急備用截圖已保存：timetable_list2_emergency.png")
         except Exception:
             pass
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-TOKEN_PICKLE = 'token.pickle'
-CREDENTIALS_FILE = 'client_secret_510785795424-m7u6jrs0btmmpp79ppr6spf8sa5ou1e5.apps.googleusercontent.com.json'  # 你的 OAuth 憑證檔名
 
-def authenticate():
-    creds = None
-    if os.path.exists(TOKEN_PICKLE):
-        with open(TOKEN_PICKLE, 'rb') as token:
-            creds = pickle.load(token)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(TOKEN_PICKLE, 'wb') as token:
-            pickle.dump(creds, token)
-    return creds
-
-def upload_to_gdrive(local_file, remote_filename, folder_id=None):
-    try:
-        creds = authenticate()
-        service = build('drive', 'v3', credentials=creds)
-
-        file_metadata = {
-            'name': remote_filename,
-            'mimeType': 'application/vnd.google-apps.spreadsheet'
-        }
-        if folder_id:
-            file_metadata['parents'] = [folder_id]
-
-        media = MediaFileUpload(local_file, mimetype='text/csv')
-        file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-        print(f"✅ 已成功上傳檔案到 Google Drive, 檔案ID: {file.get('id')}")
-        return True
-    except Exception as e:
-        print(f"❌ 上傳檔案失敗: {e}")
-        return False
 # ── 主程式 ───────────────────────────────────────────────────────────────────
 def main():
     driver = build_driver()
@@ -593,7 +556,5 @@ def main():
             driver.quit()
         except Exception:
             pass
-    local_csv_path =USERNAME + "timetable_list2.png"
-    upload_to_gdrive(local_csv_path,"uploaded_timetable_list2.png", folder_id="15WH4BuHy9u3sqUijjHZ93GWZgLdAVwEc")
 if __name__ == "__main__":
     main()
