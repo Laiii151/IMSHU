@@ -16,10 +16,6 @@ RUN apt-get update && \
     python3-dev \
     chromium \
     fontconfig \
-    libnss3 \
-    libxcomposite1 \
-    libxext6 \
-    libxrandr2 && \
     # 清理快取以減小映像檔大小
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
