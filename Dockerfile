@@ -9,10 +9,24 @@ ENV CHROME_BIN /usr/bin/chromium
 # 確保所有爬蟲都以 Headless 模式運行
 ENV HEADLESS True
 
-# 3. 安裝我們需要的系統套件 (C 編譯器等)
+# 3. 安裝系統套件：Chromium 及其依賴
 RUN apt-get update && \
-    apt-get install -y build-essential python3-dev && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
+    chromium \
+    fontconfig \
+    libnss3 \
+    libxcomposite1 \
+    libxext6 \
+    libxrandr2 && \
+    # 清理快取以減小映像檔大小
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+# 3. 安裝我們需要的系統套件 (C 編譯器等)
+#RUN apt-get update && \
+ #   apt-get install -y build-essential python3-dev && \
+  #  rm -rf /var/lib/apt/lists/*
 
 
 # 4. 設定工作目錄
@@ -21,7 +35,7 @@ WORKDIR /app
 # 5. 複製 requirements.txt 並安裝 Python 套件
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir google-api-python-client
+#RUN pip install --no-cache-dir google-api-python-client
 
 # 6. 複製整個專案的程式碼到工作目錄
 COPY . .

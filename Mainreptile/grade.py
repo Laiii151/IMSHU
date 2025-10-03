@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
-from webdriver_manager.chrome import ChromeDriverManager
+#from webdriver_manager.chrome import ChromeDriverManager
 
 # 載入環境變數
 try:
@@ -45,12 +45,17 @@ print(f"🔐 使用帳號：{USERNAME[:3]}***{USERNAME[-3:] if len(USERNAME) > 6
 # ---------------- 基礎工具函數 ----------------
 def build_driver():
     opt = webdriver.ChromeOptions()
+    HEADLESS = os.getenv("HEADLESS", "False").lower() in ("true", "1")
     if HEADLESS:
         opt.add_argument("--headless=new")
     opt.add_argument("--no-sandbox")
     opt.add_argument("--disable-gpu")
     opt.add_argument("--window-size=1440,900")
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+    chrome_bin = os.getenv('CHROME_BIN') 
+    if chrome_bin:
+        opt.binary_location = chrome_bin
+    return webdriver.Chrome(options=opt)
+    #return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
 
 def js_click(driver, el):
     driver.execute_script("""
