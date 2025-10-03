@@ -5,28 +5,21 @@
 """
 
 import pickle
-import time
-import os
+import os, sys, traceback, time
 from typing import List, Tuple, Optional, Dict, Any
 import re
 import pandas as pd
 
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementClickInterceptedException
-from webdriver_manager.chrome import ChromeDriverManager
-import sys
-import codecs
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2 import service_account
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
+#from webdriver_manager.chrome import ChromeDriverManager
+
+
 
 # 載入環境變數
 try:
@@ -58,20 +51,23 @@ print(f"🔐 使用帳號：{USERNAME[:3]}***{USERNAME[-3:] if len(USERNAME) > 6
 
 # ---------------- 基礎工具函數 ----------------
 def build_driver():
+    chrome_bin = os.getenv("CHROME_BIN", "/usr/bin/chromium")
+    HEADLESS = os.getenv("HEADLESS", "True").lower() == "true"
     """建立 Chrome WebDriver"""
     opt = webdriver.ChromeOptions()
     if HEADLESS:
         opt.add_argument("--headless=new")
     opt.add_argument("--no-sandbox")
-    opt.add_argument("--disable-gpu")
-    opt.add_argument("--disable-blink-features=AutomationControlled")
     opt.add_argument("--window-size=1440,900")
     opt.add_experimental_option("excludeSwitches", ["enable-automation"])
     opt.add_experimental_option('useAutomationExtension', False)
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    return driver
+    opt.binary_location = os.getenv("CHROME_BIN", "/usr/bin/chromium")
+    driver = webdriver.Chrome(options=opt)
+    driver.set_page_load_timeout(60)
+    return webdriver.Chrome(options=opts)
+    #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+    #driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    #return driver
 
 def js_click(driver, el):
     """JavaScript 點擊元素"""
@@ -816,4 +812,10 @@ def main():
         driver.quit()
     
 if __name__ == "__main__":
-    main()
+    try:
+        rc = main()
+        sys.exit(rc if isinstance(rc, int) else 0)
+    except Exception as e:
+        # 把完整堆疊直接印到 stderr，讓 app.py 的 .err.txt 收到
+        traceback.print_exc()
+        sys.exit(1)

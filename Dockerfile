@@ -16,6 +16,10 @@ RUN apt-get update && \
         curl ca-certificates jq gosu gnupg unzip \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium chromium-driver fonts-noto-cjk \
+ && rm -rf /var/lib/apt/lists/*
+
 # 4. 設定工作目錄
 WORKDIR /app
 
