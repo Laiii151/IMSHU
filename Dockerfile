@@ -11,13 +11,7 @@ ENV HEADLESS True
 
 # 3. 安裝我們需要的系統套件 (C 編譯器等)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    python3-dev \
-    chromium \
-    fontconfig \
-    # 清理快取以減小映像檔大小
-    apt-get clean && \
+    apt-get install -y build-essential python3-dev && \
     rm -rf /var/lib/apt/lists/*
 
 
