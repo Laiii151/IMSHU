@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 
 import pandas as pd
-from flask import Flask, render_template, request, send_file, redirect, url_for, flash
+from flask import Flask, render_template, request, abort, send_file, redirect, url_for, flash
 from dotenv import load_dotenv
 from dotenv import set_key
 
@@ -160,22 +160,36 @@ def filter_df(df: pd.DataFrame, keyword: str) -> pd.DataFrame:
         mask = mask | df[col].astype(str).str.lower().str.contains(kw, na=False)
     return df[mask]
 
-def run_spider(kind: str, abs_script_path: str, student_id: str) -> Path:
+def run_spider(kind: str, extra_env: dict | None = None, work_dir: str | Path | None = None) -> Path:
     """
-    執行子程式並把 stdout/stderr 落檔。
-    回傳 logs 目錄路徑，讓呼叫端可提示使用者去看。
+    執行對應的 scraper：
+      - kind: 'timetable' | 'grades' | 'ranking' | 'attendance'
+      - extra_env: 要加進去的環境變數（如 SHU_USERNAME/SHU_PASSWORD）
+      - work_dir: 以這個資料夾作為 cwd（例如 data/<學號>）
+    回傳：logs 目錄 Path（data/<學號>/logs）
+    失敗時：raise RuntimeError（並已把 stdout/stderr 寫入 logs）
     """
-    # 1) 準備工作資料夾
-    work_dir = Path("data") / student_id
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-    # 2) 目標腳本確認
-    script_path = Path(abs_script_path)
+    # 1) 目標腳本
+    script = SCRIPTS.get(kind)
+    if not script:
+        raise RuntimeError(f"未知 kind: {kind}")
+    script_path = Path(script)
     if not script_path.exists():
         raise FileNotFoundError(f"[FATAL] 找不到腳本：{script_path}")
 
-    # 3) 執行（關鍵：capture_output=True + text=True）
+    # 2) 工作目錄
+    if work_dir is None:
+        # 如果呼叫端沒給，就落到 data/unknown
+        work_dir = Path("data") / "unknown"
+    else:
+        work_dir = Path(work_dir)
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    # 3) 執行子程式並抓 stdout/stderr
     env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+
     cmd = [sys.executable, str(script_path)]
     try:
         proc = subprocess.run(
@@ -184,32 +198,27 @@ def run_spider(kind: str, abs_script_path: str, student_id: str) -> Path:
             env=env,
             capture_output=True,
             text=True,
-            timeout=1800,  # 給足夠時間（視需求調整）
+            timeout=1800,
         )
     except subprocess.TimeoutExpired as te:
-        # 超時也要落檔，方便診斷
-        _write_logs(kind, work_dir, 124, te.stdout or "", (te.stderr or "") + "\n[Timeout]")
-        raise
+        logs_dir = _write_logs(kind, work_dir, 124, te.stdout or "", (te.stderr or "") + "\n[Timeout]")
+        raise RuntimeError(f"{kind} 逾時（code=124）。請查看 {logs_dir} 最新 .err.txt") from te
 
-    # 4) 落檔
-    logs_dir = _write_logs(kind, work_dir, proc.returncode, proc.stdout or "", proc.stderr or "")
+    logs_dir = _write_logs(kind, work_dir, proc.returncode, proc.stdout, proc.stderr)
 
-    # 5) 非 0 直接丟錯，讓上層可顯示提示
     if proc.returncode != 0:
-        raise RuntimeError(
-            f"{kind} 失敗（code={proc.returncode}）。請查看 {logs_dir} 中最新的 .err.txt"
-        )
+        # 讓上層可以顯示友善訊息，同時 logs/ 已有完整 traceback
+        raise RuntimeError(f"{kind} 失敗（code={proc.returncode}）。請查看 {logs_dir} 最新 .err.txt")
 
     return logs_dir
-
 
 def _write_logs(kind: str, work_dir: Path, ret: int, out: str, err: str) -> Path:
     logs_dir = work_dir / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
     ts = int(time.time())
-    (logs_dir / f"{kind}_{ts}.out.txt").write_text(out, encoding="utf-8")
+    (logs_dir / f"{kind}_{ts}.out.txt").write_text(out or "", encoding="utf-8")
     (logs_dir / f"{kind}_{ts}.err.txt").write_text(
-        f"[RET] code={ret}\n\n{err}", encoding="utf-8"
+        f"[RET] code={ret}\n\n{err or ''}", encoding="utf-8"
     )
     return logs_dir
 
@@ -360,13 +369,11 @@ def download():
         return redirect(url_for("index"))
     # 直接傳檔讓使用者下載
     return send_file(path, as_attachment=True)
-
 @app.get("/logs/<student_id>")
 def list_logs(student_id):
     logs_dir = Path("data") / student_id / "logs"
     if not logs_dir.exists():
         return f"找不到 logs 目錄：{logs_dir}", 404
-
     files = sorted(logs_dir.glob("*.txt"), key=lambda p: p.stat().st_mtime, reverse=True)
     html = """
     <h3>Logs for {{sid}}</h3>
@@ -376,7 +383,7 @@ def list_logs(student_id):
     {% endfor %}
     </ul>
     """
-    return render_template(html, sid=student_id, files=[f for f in files])
+    return render_template(html, sid=student_id, files=files)
 
 @app.get("/logs/<student_id>/view")
 def view_log(student_id):
@@ -386,7 +393,6 @@ def view_log(student_id):
     if logs_dir.resolve() not in p.parents or not p.exists():
         abort(404)
     return f"<pre style='white-space: pre-wrap'>{p.read_text(encoding='utf-8', errors='ignore')}</pre>"
-
 if __name__ == "__main__":
     # python app.py
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=True)
