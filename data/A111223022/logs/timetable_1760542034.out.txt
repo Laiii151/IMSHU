@@ -1,0 +1,6 @@
+🚀 啟動：只抓清單一 + 截圖清單二
+✅ 清單一完成：timetable_list1.(csv/json/xlsx) 已產生
+📸 開始截圖課表清單二...
+🔎 已套用頁面縮放 zoom=0.67
+📸 timetable_list2.png（zoom=0.67，element.screenshot 成功）
+🎉 全部完成：清單一資料 + 清單二截圖

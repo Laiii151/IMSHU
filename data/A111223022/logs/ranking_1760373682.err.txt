@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\ranking_scraper.py", line 524, in <module>
+    main()
+  File "C:\IMSHU\Mainreptile\ranking_scraper.py", line 416, in main
+    driver = build_driver()
+             ^^^^^^^^^^^^^^
+  File "C:\IMSHU\Mainreptile\ranking_scraper.py", line 63, in build_driver
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=options)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 212, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 299, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: Chrome failed to start: was killed.
+  (chrome not reachable)
+  (The process started from chrome location C:\Program Files\Google\Chrome\Application\chrome.exe is no longer running, so ChromeDriver is assuming that Chrome has crashed.)
+Stacktrace:
+	GetHandleVerifier [0x0x30fea3+66515]
+	GetHandleVerifier [0x0x30fee4+66580]
+	(No symbol) [0x0xfdc48]
+	(No symbol) [0x0x133923]
+	(No symbol) [0x0x12ea2a]
+	(No symbol) [0x0x176ffc]
+	(No symbol) [0x0x1768fa]
+	(No symbol) [0x0x16afc6]
+	(No symbol) [0x0x13c2ca]
+	(No symbol) [0x0x13d154]
+	GetHandleVerifier [0x0x5673d3+2521347]
+	GetHandleVerifier [0x0x562353+2500739]
+	GetHandleVerifier [0x0x337cf4+229924]
+	GetHandleVerifier [0x0x328258+165768]
+	GetHandleVerifier [0x0x32ed0d+193085]
+	GetHandleVerifier [0x0x3181b8+100072]
+	GetHandleVerifier [0x0x318350+100480]
+	GetHandleVerifier [0x0x30260a+11066]
+	BaseThreadInitThunk [0x0x75ea5d49+25]
+	RtlInitializeExceptionChain [0x0x775ed6db+107]
+	RtlGetAppContainerNamedObjectPath [0x0x775ed661+561]
+	(No symbol) [0x0]
+

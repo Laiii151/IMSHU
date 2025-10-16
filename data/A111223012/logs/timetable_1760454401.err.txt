@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 560, in <module>
+    main()
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 518, in main
+    goto_student_system_from_home(driver)
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 172, in goto_student_system_from_home
+    raise RuntimeError("找不到『校務系統』連結")
+RuntimeError: 找不到『校務系統』連結

@@ -1,0 +1,45 @@
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 560, in <module>
+    main()
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 520, in main
+    open_sc0106(driver)
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 210, in open_sc0106
+    driver.switch_to.default_content()
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\switch_to.py", line 69, in default_content
+    self._driver.execute(Command.SWITCH_TO_FRAME, {"id": None})
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: Unable to receive message from renderer
+  (Session info: chrome=141.0.7390.67)
+Stacktrace:
+	GetHandleVerifier [0x0xdafea3+66515]
+	GetHandleVerifier [0x0xdafee4+66580]
+	(No symbol) [0x0xb9dc48]
+	(No symbol) [0x0xb8e1bc]
+	(No symbol) [0x0xb8deef]
+	(No symbol) [0x0xb8be60]
+	(No symbol) [0x0xb8c937]
+	(No symbol) [0x0xb9963e]
+	(No symbol) [0x0xbab195]
+	(No symbol) [0x0xbb0d26]
+	(No symbol) [0x0xb8cfb6]
+	(No symbol) [0x0xbaaa0c]
+	(No symbol) [0x0xc2cab6]
+	(No symbol) [0x0xc0afc6]
+	(No symbol) [0x0xbdc2ca]
+	(No symbol) [0x0xbdd154]
+	GetHandleVerifier [0x0x10073d3+2521347]
+	GetHandleVerifier [0x0x1002353+2500739]
+	GetHandleVerifier [0x0xdd7cf4+229924]
+	GetHandleVerifier [0x0xdc8258+165768]
+	GetHandleVerifier [0x0xdced0d+193085]
+	GetHandleVerifier [0x0xdb81b8+100072]
+	GetHandleVerifier [0x0xdb8350+100480]
+	GetHandleVerifier [0x0xda260a+11066]
+	BaseThreadInitThunk [0x0x75ea5d49+25]
+	RtlInitializeExceptionChain [0x0x775ed6db+107]
+	RtlGetAppContainerNamedObjectPath [0x0x775ed661+561]
+

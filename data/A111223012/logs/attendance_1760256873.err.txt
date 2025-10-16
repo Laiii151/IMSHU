@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\common\driver_finder.py", line 75, in _binary_paths
+    raise ValueError(f'The browser path is not a valid file: {output["browser_path"]}')
+ValueError: The browser path is not a valid file: /usr/bin/chromium
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\attendance_scraper.py", line 821, in <module>
+    rc = main()
+         ^^^^^^
+  File "C:\IMSHU\Mainreptile\attendance_scraper.py", line 703, in main
+    driver = build_driver()
+             ^^^^^^^^^^^^^^
+  File "C:\IMSHU\Mainreptile\attendance_scraper.py", line 63, in build_driver
+    driver = webdriver.Chrome(options=opt)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 50, in __init__
+    if finder.get_browser_path():
+       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\common\driver_finder.py", line 47, in get_browser_path
+    return self._binary_paths()["browser_path"]
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\common\driver_finder.py", line 78, in _binary_paths
+    raise NoSuchDriverException(msg) from err
+selenium.common.exceptions.NoSuchDriverException: Message: Unable to obtain driver for chrome; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors/driver_location
+

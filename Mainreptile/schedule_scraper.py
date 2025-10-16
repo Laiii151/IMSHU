@@ -20,19 +20,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
-from xlsxwriter import Workbook
-from typing import List, Tuple
-import sys
-import codecs
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.oauth2 import service_account
-from googleapiclient.http import MediaFileUpload
-from google.auth.transport.requests import Request
-import pickle
-
 
 HEADLESS = False     # 需要背景跑可改 True
 HOME_URL = "https://www.shu.edu.tw/"
@@ -64,7 +51,14 @@ def build_driver():
     opt.add_argument("--lang=zh-TW")
     # 給大一點的視窗避免欄位自動換行造成解析偏差
     opt.add_argument("--window-size=1600,1400")
+
+    # 可用環境變數調整，預設給足夠高度以容納整張清單二
+    w = int(os.getenv("WINDOW_W", "1800"))
+    h = int(os.getenv("WINDOW_H", "2200"))
+    opt.add_argument(f"--window-size={w},{h}")
+
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+
 
 def js_click(driver, el):
     driver.execute_script("arguments[0].scrollIntoView({block:'center'});", el)
@@ -202,7 +196,9 @@ def login_if_needed(driver):
             js_click(driver, btn)
         except NoSuchElementException:
             p.submit()
-        time.sleep(1.2)
+        time.sleep(0.8)
+        # 檢查是否顯示登入錯誤（包含輪詢）
+        wait_login_result_or_error(driver, timeout_seconds=8)
     except TimeoutException:
         pass  # 沒有登入畫面就 SSO 直通
 
@@ -211,9 +207,13 @@ def open_sc0106(driver):
     try:
         driver.switch_to.frame("main")
     except Exception:
-        save_html(driver, "frameset_outer.html")
-        driver.save_screenshot("no_main_frame.png")
-        raise RuntimeError("找不到 main frame")
+        # 若找不到 frame，記錄並改用當前內容繼續，避免整段流程中斷
+        try:
+            save_html(driver, "frameset_outer.html")
+            driver.save_screenshot("no_main_frame.png")
+        except Exception:
+            pass
+        print("[WARN] 找不到 main frame，改用目前頁面繼續。")
 
     wait_present(driver, By.CSS_SELECTOR, ".label", 15)
 
@@ -338,177 +338,138 @@ def parse_list1(driver) -> pd.DataFrame:
 
 # ── 新增：截圖清單二區域 ───────────────────────────────────────────────────────
 def screenshot_list2(driver):
-    """截圖課表清單二區域並保存"""
+    """
+    只截《個人課表清單二》——不縮放、不改 CSS。
+    作法：定位清單二表格 -> 量測元素尺寸 -> set_window_size 讓它完整可見 -> element.screenshot()
+    若元素過高超過上限，改走全頁截圖 + 精準裁切。
+    產出：timetable_list2.png
+    """
+
+    # 進入主要 frame（若沒有也不報錯）
     try:
         driver.switch_to.default_content()
         driver.switch_to.frame("main")
-        
-        # 先保存完整頁面用於調試
-        driver.save_screenshot("debug_full_page.png")
-        print("🔍 調試：完整頁面截圖已保存 debug_full_page.png")
-        
-        # 使用JavaScript來精確找到課表清單二
-        list2_info = driver.execute_script("""
-            // 尋找課表清單二的多種策略
-            let targetTable = null;
-            let strategy = '';
-            
-            // 策略1: 尋找包含星期的表格（非GRD_DataGrid）
-            const tables = Array.from(document.querySelectorAll('table'));
-            for (let table of tables) {
-                const tableId = table.id || '';
-                if (tableId === 'GRD_DataGrid') continue; // 跳過清單一
-                
-                const text = table.innerText || '';
-                const hasWeekdays = ['星期一', '星期二', '星期三', '星期四', '星期五'].some(day => text.includes(day));
-                if (hasWeekdays) {
-                    targetTable = table;
-                    strategy = 'weekday_table';
-                    break;
-                }
-            }
-            
-            // 策略2: 尋找藍色背景的表格
-            if (!targetTable) {
-                for (let table of tables) {
-                    if (table.id === 'GRD_DataGrid') continue;
-                    
-                    const cells = Array.from(table.querySelectorAll('td'));
-                    const hasBlueBackground = cells.some(cell => {
-                        const bgColor = window.getComputedStyle(cell).backgroundColor;
-                        const bgcolor = cell.getAttribute('bgcolor');
-                        return bgColor.includes('rgb') && bgColor !== 'rgba(0, 0, 0, 0)' || 
-                               (bgcolor && bgcolor !== '');
-                    });
-                    
-                    if (hasBlueBackground) {
-                        targetTable = table;
-                        strategy = 'blue_background';
-                        break;
-                    }
-                }
-            }
-            
-            // 策略3: 找GRD_DataGrid後面的第一個表格
-            if (!targetTable) {
-                const dataGrid = document.getElementById('GRD_DataGrid');
-                if (dataGrid) {
-                    let nextEl = dataGrid.nextElementSibling;
-                    while (nextEl) {
-                        if (nextEl.tagName === 'TABLE') {
-                            targetTable = nextEl;
-                            strategy = 'next_after_datagrid';
-                            break;
-                        }
-                        const table = nextEl.querySelector('table');
-                        if (table) {
-                            targetTable = table;
-                            strategy = 'nested_after_datagrid';
-                            break;
-                        }
-                        nextEl = nextEl.nextElementSibling;
-                    }
-                }
-            }
-            
-            // 策略4: 尋找最下方的大表格
-            if (!targetTable) {
-                const allTables = Array.from(document.querySelectorAll('table'));
-                const largeTables = allTables.filter(t => {
-                    const rect = t.getBoundingClientRect();
-                    return rect.width > 500 && rect.height > 200 && t.id !== 'GRD_DataGrid';
-                });
-                if (largeTables.length > 0) {
-                    targetTable = largeTables[largeTables.length - 1]; // 取最後一個大表格
-                    strategy = 'large_table';
-                }
-            }
-            
-            if (targetTable) {
-                const rect = targetTable.getBoundingClientRect();
-                return {
-                    found: true,
-                    strategy: strategy,
-                    element: targetTable,
-                    x: rect.x + window.pageXOffset,
-                    y: rect.y + window.pageYOffset,
-                    width: rect.width,
-                    height: rect.height,
-                    text_preview: targetTable.innerText.substring(0, 100)
-                };
-            } else {
-                return { found: false };
-            }
-        """)
-        
-        if not list2_info.get('found'):
-            print("⚠️ 無法找到課表清單二，使用頁面下半部截圖")
-            # 截圖頁面下半部
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.5);")
-            time.sleep(0.5)
-            driver.save_screenshot("timetable_list2_bottom_half.png")
-            return
-        
-        print(f"✅ 找到清單二，使用策略：{list2_info['strategy']}")
-        print(f"📝 內容預覽：{list2_info['text_preview']}...")
-        
-        # 滾動到清單二位置
-        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", list2_info['element'])
-        time.sleep(0.8)
-        
-        # 截圖整個頁面
-        driver.save_screenshot("temp_full_screenshot.png")
-        
-        # 使用PIL裁切出清單二區域
-        try:
-            from PIL import Image
-            
-            # 打開完整截圖
-            full_image = Image.open("temp_full_screenshot.png")
-            
-            # 獲取瀏覽器的縮放比例
-            device_pixel_ratio = driver.execute_script("return window.devicePixelRatio || 1;")
-            
-            # 計算實際像素位置（考慮縮放比例），並加大padding確保包含標題
-            padding = 50  # 增加padding確保包含標題
-            left = max(0, int(list2_info['x'] * device_pixel_ratio) - padding)
-            top = max(0, int(list2_info['y'] * device_pixel_ratio) - padding)
-            right = min(full_image.width, int((list2_info['x'] + list2_info['width']) * device_pixel_ratio) + padding)
-            bottom = min(full_image.height, int((list2_info['y'] + list2_info['height']) * device_pixel_ratio) + padding)
-            
-            print(f"🔍 裁切區域：({left}, {top}) 到 ({right}, {bottom})")
-            
-            # 裁切並保存
-            if right > left and bottom > top:
-                cropped_image = full_image.crop((left, top, right, bottom))
-                cropped_image.save("timetable_list2.png")
-                print(f"📸 課表清單二截圖已保存：{USERNAME}_timetable_list2.png")
-            else:
-                print("⚠️ 裁切區域無效，保存完整截圖")
-                full_image.save("timetable_list2_full.png")
+    except Exception:
+        pass
 
-            # 刪除臨時檔案
-            os.remove("temp_full_screenshot.png")
-            
-        except ImportError:
-            print("⚠️ 需要安裝 Pillow 套件：pip install Pillow")
-            print("📸 完整頁面截圖已保存")
-            os.rename("temp_full_screenshot.png", "timetable_list2_fullpage.png")
-            
-        except Exception as crop_error:
-            print(f"⚠️ 裁切時發生錯誤：{crop_error}")
-            print("📸 保存完整頁面截圖作為備用")
-            if os.path.exists("temp_full_screenshot.png"):
-                os.rename("temp_full_screenshot.png", "timetable_list2_backup.png")
-            
-    except Exception as e:
-        print(f"⚠️ 截圖清單二時發生錯誤：{e}")
+    # 1) 精準找到清單二表格
+    target = None
+    try:
+        heading = driver.find_element(
+            By.XPATH,
+            "//*[contains(normalize-space(.),'個人課表清單二') or contains(normalize-space(.),'《個人課表清單二》')]"
+        )
+        target = heading.find_element(By.XPATH, "following::table[1]")
+        if target.get_attribute("id") == "GRD_DataGrid":  # 避免誤抓清單一
+            target = None
+    except Exception:
+        target = None
+
+    if target is None:
         try:
-            # 最終備用方案：截圖整個頁面
-            driver.save_screenshot("timetable_list2_emergency.png")
-            print(f"📸 緊急備用截圖已保存：timetable_list2_emergency.png")
+            target = driver.find_element(
+                By.XPATH,
+                "//table[.//text()[contains(.,'第01節')] "
+                "and .//text()[contains(.,'星期一')] "
+                "and (not(@id) or @id!='GRD_DataGrid')]"
+            )
         except Exception:
-            pass
+            target = None
+
+    if target is None:
+        print("⚠️ 找不到《個人課表清單二》，改存全頁 timetable_list2_fullpage.png")
+        driver.save_screenshot("timetable_list2_fullpage.png")
+        return
+
+    # 2) 量測元素尺寸（以 px）並調整視窗尺寸讓它一次容納
+    #    留一點 padding 讓邊界方正清楚
+    padding = 24
+    rect = driver.execute_script("""
+        const el = arguments[0];
+        const r = el.getBoundingClientRect();
+        return {
+            x: r.x + window.scrollX,
+            y: r.y + window.scrollY,
+            w: Math.ceil(r.width),
+            h: Math.ceil(r.height),
+            vpw: window.innerWidth,
+            vph: window.innerHeight,
+            dpr: window.devicePixelRatio || 1
+        };
+    """, target)
+
+    # 目標視窗寬高（盡量讓整張表一次進可視區）
+    desired_width  = max(rect["vpw"], rect["w"] + padding * 2)
+    desired_height = max(rect["vph"], rect["h"] + padding * 2)
+
+    # 視窗高度安全上限（避免某些環境下過大造成無法 set）
+    MAX_H = 3000
+    desired_height = min(desired_height, MAX_H)
+
+    try:
+        driver.set_window_size(int(desired_width), int(desired_height))
+        time.sleep(0.5)  # 讓 layout 重新排定
+    except Exception as e:
+        print(f"⚠️ set_window_size 失敗：{e}")
+
+    # 滾動使表格靠近視窗中央，避免被頂部工具列擋住
+    driver.execute_script("arguments[0].scrollIntoView({block:'center'});", target)
+    time.sleep(0.5)
+
+    # 3) 優先用 element.screenshot() —— 取得方正清楚的表格圖
+    try:
+        ok = target.screenshot("timetable_list2.png")
+        if ok:
+            print(f"📸 timetable_list2.png（element.screenshot，視窗 {desired_width}x{desired_height}）")
+            return
+    except Exception as e:
+        print(f"⚠️ element.screenshot 失敗，fallback：{e}")
+
+    # 4) Fallback：全頁截圖 + 精準裁切（只留小 padding，保持方正）
+    driver.execute_script("window.scrollTo(0, 0);")
+    time.sleep(0.3)
+    driver.save_screenshot("temp_full.png")
+
+    try:
+        from PIL import Image
+    except ImportError:
+        print("⚠️ 未安裝 Pillow，保留全頁 temp_full.png")
+        return
+
+    # 重新量測（避免 set_window_size 後數值變動）
+    rect = driver.execute_script("""
+        const el = arguments[0];
+        const r = el.getBoundingClientRect();
+        return {
+            x: r.x + window.scrollX,
+            y: r.y + window.scrollY,
+            w: Math.ceil(r.width),
+            h: Math.ceil(r.height),
+            dpr: window.devicePixelRatio || 1
+        };
+    """, target)
+
+    img = Image.open("temp_full.png")
+    dpr = float(rect.get("dpr", 1.0)) or 1.0
+    pad = int(padding * dpr)
+
+    left   = max(0, int(rect["x"] * dpr) - pad)
+    top    = max(0, int(rect["y"] * dpr) - pad)
+    right  = min(img.width,  int((rect["x"] + rect["w"]) * dpr) + pad)
+    bottom = min(img.height, int((rect["y"] + rect["h"]) * dpr) + pad)
+
+    if right <= left or bottom <= top:
+        print("⚠️ 裁切座標異常，保存全頁 timetable_list2_fullpage.png")
+        img.save("timetable_list2_fullpage.png")
+    else:
+        img.crop((left, top, right, bottom)).save("timetable_list2.png")
+        print(f"📸 timetable_list2.png（fallback 裁切，padding={padding}px）")
+
+    try:
+        os.remove("temp_full.png")
+    except Exception:
+        pass
+
 
 # ── 主程式 ───────────────────────────────────────────────────────────────────
 def main():
@@ -556,5 +517,6 @@ def main():
             driver.quit()
         except Exception:
             pass
+
 if __name__ == "__main__":
     main()

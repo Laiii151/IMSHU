@@ -1,32 +1,32 @@
+# ---------------- 基礎工具函數 ----------------
 # -*- coding: utf-8 -*-
 """
 世新大學 缺勤記錄爬蟲
 從世新校網進入學生教務系統，爬取個人缺勤記錄
 """
 
-import pickle
-import os, sys, traceback, time
+import time
+import os
 from typing import List, Tuple, Optional, Dict, Any
 import re
 import pandas as pd
-from pathlib import Path
+
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, ElementClickInterceptedException
-#from webdriver_manager.chrome import ChromeDriverManager
-
-
+from webdriver_manager.chrome import ChromeDriverManager
 
 # 載入環境變數
 try:
-    from dotenv import load_dotenv, find_dotenv
-    load_dotenv(find_dotenv(), override=False)   # 會從 repo 根找 .env
-except Exception:
-    pass
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("✅ 已載入 .env 檔案")
+except ImportError:
+    print("⚠️ 未安裝 python-dotenv，請執行: pip install python-dotenv")
+    print("⚠️ 或手動設定環境變數")
 
 # ========= 設定區 =========
 # 從環境變數讀取帳號密碼
@@ -49,21 +49,19 @@ print(f"🔐 使用帳號：{USERNAME[:3]}***{USERNAME[-3:] if len(USERNAME) > 6
 
 # ---------------- 基礎工具函數 ----------------
 def build_driver():
-    chrome_bin = os.getenv("CHROME_BIN", "/usr/bin/chromium")
-    HEADLESS = os.getenv("HEADLESS", "True").lower() == "true"
     """建立 Chrome WebDriver"""
     opt = webdriver.ChromeOptions()
     if HEADLESS:
         opt.add_argument("--headless=new")
     opt.add_argument("--no-sandbox")
+    opt.add_argument("--disable-gpu")
+    opt.add_argument("--disable-blink-features=AutomationControlled")
     opt.add_argument("--window-size=1440,900")
     opt.add_experimental_option("excludeSwitches", ["enable-automation"])
     opt.add_experimental_option('useAutomationExtension', False)
-    opt.binary_location = os.getenv("CHROME_BIN", "/usr/bin/chromium")
-    driver = webdriver.Chrome(options=opt)
-    driver.set_page_load_timeout(60)
-    #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
-    #driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+    
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
     return driver
 
 def js_click(driver, el):
@@ -685,21 +683,26 @@ def clean_attendance_data(records):
         if old_name in df.columns:
             df = df.rename(columns={old_name: new_name})
     
+    # 欄位順序與對齊（避免顯示時欄位錯位）
+    preferred_order = ['學年','學期','課程代碼','課程名稱','教師','缺勤狀態','曠課次數','扣考時數','備註']
+    ordered_exist = [c for c in preferred_order if c in df.columns]
+    others = [c for c in df.columns if c not in ordered_exist]
+    if ordered_exist:
+        df = df[ordered_exist + others]
+
+    # 基本修整：去除字串前後空白
+    for col in df.columns:
+        if df[col].dtype == object:
+            df[col] = df[col].astype(str).str.replace('\u00a0',' ', regex=False).str.strip()
+
     print(f"🧹 清理後：{len(df)} 筆記錄")
     print(f"📊 欄位: {list(df.columns)}")
     
     return df
+
 # ---------------- 主程式 ----------------
 def main():
     """主程式入口"""
-    user = os.getenv("SHU_USERNAME")
-    pw   = os.getenv("SHU_PASSWORD")
-    if not user or not pw:
-        raise RuntimeError("缺少 SHU_USERNAME/SHU_PASSWORD 環境變數（請到 Render 設定）")
-
-    # 2) 工作目錄（母程式已把 cwd 設在 data/<學號>，這裡直接使用）
-    out_dir = Path.cwd()
-    out_dir.mkdir(parents=True, exist_ok=True)    
     driver = build_driver()
     
     try:
@@ -815,12 +818,6 @@ def main():
         if not HEADLESS:
             time.sleep(2)
         driver.quit()
-    
+
 if __name__ == "__main__":
-    try:
-        rc = main()
-        sys.exit(rc if isinstance(rc, int) else 0)
-    except Exception as e:
-        # 把完整堆疊直接印到 stderr，讓 app.py 的 .err.txt 收到
-        traceback.print_exc()
-        sys.exit(1)
+    main()

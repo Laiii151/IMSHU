@@ -1,0 +1,49 @@
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 619, in <module>
+    main()
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 574, in main
+    driver = build_driver()
+             ^^^^^^^^^^^^^^
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 67, in build_driver
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opt)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chrome\webdriver.py", line 45, in __init__
+    super().__init__(
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\chromium\webdriver.py", line 66, in __init__
+    super().__init__(command_executor=executor, options=options)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 212, in __init__
+    self.start_session(capabilities)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 299, in start_session
+    response = self.execute(Command.NEW_SESSION, caps)["value"]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.SessionNotCreatedException: Message: session not created: This version of ChromeDriver only supports Chrome version 114
+Current browser version is 141.0.7390.67 with binary path C:\Program Files\Google\Chrome\Application\chrome.exe
+Stacktrace:
+Backtrace:
+	GetHandleVerifier [0x00C8A813+48355]
+	(No symbol) [0x00C1C4B1]
+	(No symbol) [0x00B25358]
+	(No symbol) [0x00B461AC]
+	(No symbol) [0x00B41EF3]
+	(No symbol) [0x00B40579]
+	(No symbol) [0x00B70C55]
+	(No symbol) [0x00B7093C]
+	(No symbol) [0x00B6A536]
+	(No symbol) [0x00B482DC]
+	(No symbol) [0x00B493DD]
+	GetHandleVerifier [0x00EEAABD+2539405]
+	GetHandleVerifier [0x00F2A78F+2800735]
+	GetHandleVerifier [0x00F2456C+2775612]
+	GetHandleVerifier [0x00D151E0+616112]
+	(No symbol) [0x00C25F8C]
+	(No symbol) [0x00C22328]
+	(No symbol) [0x00C2240B]
+	(No symbol) [0x00C14FF7]
+	BaseThreadInitThunk [0x75EA5D49+25]
+	RtlInitializeExceptionChain [0x775ED6DB+107]
+	RtlGetAppContainerNamedObjectPath [0x775ED661+561]
+

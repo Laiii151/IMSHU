@@ -22,8 +22,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
-import sys
-import codecs
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2.credentials import Credentials
@@ -374,7 +372,7 @@ def _split_triplet_to_cols(series: pd.Series, prefix: str) -> pd.DataFrame:
     return series.apply(_split).apply(pd.Series).set_axis([f'{prefix}_班', f'{prefix}_組', f'{prefix}_系'], axis=1)
 
 def clean_ranking_df(df: pd.DataFrame) -> pd.DataFrame:
-    """清理名次資料"""
+    """清理名次資料（並確保每個學年×學期只留一筆）"""
     if df.empty:
         return df
 
@@ -390,27 +388,48 @@ def clean_ranking_df(df: pd.DataFrame) -> pd.DataFrame:
     if '平均' in df.columns:
         df['平均'] = pd.to_numeric(df['平均'], errors='coerce')
 
-    # ✅ 防止 Excel 把名次/人數當日期：改用全形斜線，並另外拆成數字欄
+    # 防止 Excel 把名次/人數當日期：改全形斜線，並另外拆成數字欄
+    def _to_fullwidth_slash(s: str) -> str:
+        import re
+        if s is None:
+            return s
+        return re.sub(r'\s*/\s*', '／', str(s))
+
+    def _split_triplet_to_cols(series: pd.Series, prefix: str) -> pd.DataFrame:
+        import re
+        def _split(s):
+            nums = re.findall(r'\d+', str(s) if s is not None else '')
+            nums = nums[:3] + [None] * (3 - len(nums))
+            return [int(n) if n is not None else None for n in nums]
+        return series.apply(_split).apply(pd.Series).set_axis([f'{prefix}_班', f'{prefix}_組', f'{prefix}_系'], axis=1)
+
     if '名次' in df.columns:
         df['名次'] = df['名次'].map(_to_fullwidth_slash)
-        rank_cols = _split_triplet_to_cols(df['名次'], '名次')
-        df = pd.concat([df, rank_cols], axis=1)
-
     if '人數' in df.columns:
         df['人數'] = df['人數'].map(_to_fullwidth_slash)
+
+    # === 這裡是重點：去除同一學年×學期的重複，只保留一筆 ===
+    # 規則：先按學年、學期排序，再保留第一筆（你也可以改 keep='last'）
+    sort_cols = [c for c in ['學年', '學期'] if c in df.columns]
+    if sort_cols:
+        df = df.sort_values(sort_cols).drop_duplicates(subset=['學年', '學期'], keep='first').reset_index(drop=True)
+
+    # 再做欄位拆分（放在去重後，避免重複運算）
+    if '名次' in df.columns:
+        rank_cols = _split_triplet_to_cols(df['名次'], '名次')
+        df = pd.concat([df, rank_cols], axis=1)
+    if '人數' in df.columns:
         count_cols = _split_triplet_to_cols(df['人數'], '人數')
         df = pd.concat([df, count_cols], axis=1)
 
-    # 排序（若欄位存在）
-    sort_cols = [c for c in ['學年', '學期'] if c in df.columns]
-    if sort_cols:
-        df = df.sort_values(sort_cols).reset_index(drop=True)
-
     # 欄位順序（直覺）
-    ordered = [c for c in ['學年', '學期', '學分', '平均', '名次', '人數',
-                           '名次_班', '名次_組', '名次_系',
-                           '人數_班', '人數_組', '人數_系'] if c in df.columns]
+    ordered = [c for c in [
+        '學年', '學期', '學分', '平均', '名次', '人數',
+        '名次_班', '名次_組', '名次_系',
+        '人數_班', '人數_組', '人數_系'
+    ] if c in df.columns]
     df = df[ordered + [c for c in df.columns if c not in ordered]]
+
     return df
 
 # ---------------- 主程式 ----------------
@@ -443,13 +462,6 @@ def main():
                 (os.path.expanduser("~/Desktop/ranking_records.csv"),
                  os.path.expanduser("~/Desktop/ranking_records.json"),
                  os.path.expanduser("~/Desktop/ranking_records.xlsx")),
-                (os.path.expanduser("~/Downloads/ranking_records.csv"),
-                 os.path.expanduser("~/Downloads/ranking_records.json"),
-                 os.path.expanduser("~/Downloads/ranking_records.xlsx")),
-                 (f"C:\\IMSHU\\{USERNAME}_ranking_records.csv", f"C:\\IMSHU\\{USERNAME}_ranking_records.json", f"C:\\IMSHU\\{USERNAME}_ranking_records.xlsx"),
-                (f"ranking_records_{int(time.time())}.csv",
-                 f"ranking_records_{int(time.time())}.json",
-                 f"ranking_records_{int(time.time())}.xlsx"),
             ]
 
             csv_saved = json_saved = xlsx_saved = False

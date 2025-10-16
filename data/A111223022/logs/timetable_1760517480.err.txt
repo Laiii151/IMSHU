@@ -1,0 +1,37 @@
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 554, in <module>
+    main()
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 513, in main
+    open_sc0106(driver)
+  File "C:\IMSHU\Mainreptile\schedule_scraper.py", line 199, in open_sc0106
+    driver.switch_to.default_content()
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\switch_to.py", line 69, in default_content
+    self._driver.execute(Command.SWITCH_TO_FRAME, {"id": None})
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\webdriver.py", line 354, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\Laiii\AppData\Local\Programs\Python\Python311\Lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 229, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id
+Stacktrace:
+	GetHandleVerifier [0x0x111fe83+66515]
+	GetHandleVerifier [0x0x111fec4+66580]
+	(No symbol) [0x0xf0da6b]
+	(No symbol) [0x0xf4b5ab]
+	(No symbol) [0x0xf7b086]
+	(No symbol) [0x0xf7667c]
+	(No symbol) [0x0xf75bf3]
+	(No symbol) [0x0xede72d]
+	(No symbol) [0x0xedecae]
+	(No symbol) [0x0xedf14d]
+	GetHandleVerifier [0x0x13773b3+2521347]
+	GetHandleVerifier [0x0x1372333+2500739]
+	GetHandleVerifier [0x0x1147cd4+229924]
+	GetHandleVerifier [0x0x1138238+165768]
+	GetHandleVerifier [0x0x113eced+193085]
+	(No symbol) [0x0xede3e3]
+	(No symbol) [0x0xeddb60]
+	GetHandleVerifier [0x0x14bc26f+3852223]
+	BaseThreadInitThunk [0x0x75ea5d49+25]
+	RtlInitializeExceptionChain [0x0x775ed6db+107]
+	RtlGetAppContainerNamedObjectPath [0x0x775ed661+561]
+

@@ -1,0 +1,6 @@
+[RET] code=1
+
+Traceback (most recent call last):
+  File "C:\IMSHU\Mainreptile\ranking_scraper.py", line 39, in <module>
+    print("\u2705 已載入 .env 檔案")
+UnicodeEncodeError: 'cp950' codec can't encode character '\u2705' in position 0: illegal multibyte sequence
