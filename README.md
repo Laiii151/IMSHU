@@ -4,6 +4,16 @@
 ![Flask](https://img.shields.io/badge/flask-3.0.3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+## ⚠️ 重要安全提醒
+
+> **在開始使用之前，請務必閱讀 [安全公告](SECURITY_NOTICE.md)**
+> 
+> 本專案包含敏感資訊設定。請：
+> - ✅ 使用您自己的憑證和密碼
+> - ✅ 絕不將 `.env`、`client_secrets.json`、`token.json` 上傳到公開位置
+> - ✅ 定期更換密碼和金鑰
+> - ✅ 閱讀 [安全性指南](SECURITY.md) 了解更多資訊
+
 ## 📖 專案簡介
 
 IMSHU 是一個針對世新大學校務系統設計的資料查詢工具，可以幫助學生自動抓取並整理以下資料：
@@ -26,6 +36,8 @@ IMSHU 是一個針對世新大學校務系統設計的資料查詢工具，可�
 - ✅ 支援 Render.com 雲端部署
 
 ## 🚀 快速開始
+
+> 📘 **首次使用？** 請參考詳細的 [設定指南 (SETUP.md)](SETUP.md)
 
 ### 前置需求
 
@@ -193,9 +205,18 @@ IMSHU/
 ├── requirements.txt          # Python 依賴套件
 ├── Dockerfile               # Docker 設定檔
 ├── build.sh                 # 建置腳本
-├── .env                     # 環境變數（請勿上傳至 Git）
-├── .gitignore              # Git 忽略檔案清單
-├── README.md               # 專案說明文件
+├── README.md               # 專案說明文件（本文件）
+├── SETUP.md                # 首次設定指南 ⭐
+├── DEPLOYMENT.md           # 部署指南
+├── CONTRIBUTING.md         # 貢獻指南
+├── SECURITY.md             # 安全性指南
+├── SECURITY_NOTICE.md      # 安全公告
+├── LICENSE                 # MIT 授權條款
+├── .env.example           # 環境變數範本
+├── .env                   # 環境變數（請勿上傳，已在 .gitignore）
+├── .gitignore            # Git 忽略檔案清單
+├── client_secrets.json   # Google OAuth 憑證（請勿上傳）
+├── token.json           # Google OAuth Token（自動產生，請勿上傳）
 ├── Mainreptile/            # 爬蟲腳本資料夾
 │   ├── schedule_scraper.py    # 課表爬蟲
 │   ├── grade.py               # 成績爬蟲
@@ -204,9 +225,7 @@ IMSHU/
 ├── templates/              # HTML 模板
 │   └── home.html             # 首頁模板
 ├── data/                   # 使用者資料目錄（自動產生）
-├── logs/                   # 日誌目錄（自動產生）
-├── client_secrets.json     # Google OAuth 憑證（請勿上傳）
-└── token.json             # Google OAuth Token（自動產生，請勿上傳）
+└── logs/                   # 日誌目錄（自動產生）
 ```
 
 ## 🔒 安全性與隱私
