@@ -4,6 +4,19 @@
 ![Flask](https://img.shields.io/badge/flask-3.0.3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+## 📚 文件導覽
+
+| 文件 | 說明 |
+|------|------|
+| [README.md](README.md) | 專案說明（本文件） |
+| [SETUP.md](SETUP.md) | 📘 首次設定指南 - **新手必讀** |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | 🚀 部署指南 - 本地/Docker/雲端部署 |
+| [SECURITY.md](SECURITY.md) | 🔒 安全性指南 - 保護您的資料 |
+| [SECURITY_NOTICE.md](SECURITY_NOTICE.md) | ⚠️ 安全公告 - 重要安全資訊 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 🤝 貢獻指南 - 如何參與開發 |
+| [HOW_TO_PUBLISH.md](HOW_TO_PUBLISH.md) | 📢 發佈指南 - 如何公開專案到 GitHub |
+| [LICENSE](LICENSE) | 📄 MIT 授權條款 |
+
 ## ⚠️ 重要安全提醒
 
 > **在開始使用之前，請務必閱讀 [安全公告](SECURITY_NOTICE.md)**
